@@ -23,7 +23,13 @@ sys_write
 		dofilewrite
 			vn_io_fault (fo_write)
 				foffset_lock_uio
-				doio
+				vn_write
+					get_advice
+					vn_lock
+					_vn_lock
+					ffs_write (VOP_WRITE)
+					vop_stdunlock (VOP_UNLOCK)
+					vop_stdadvise (VOP_ADVISE)
 				foffset_unlock_uio
 		fdrop
 ```
@@ -38,9 +44,56 @@ The second '+' means that I have read the code closely and heavily commented it.
 The third '+' means that I have added it to this document's code walkthrough.
 
 ```txt
+File: sys_generic.c
+	sys_write			+++-
+	kern_writev			+++-
+	dofilewrite			+---
+
+File: kern_descrip.c
+	fget_write			+++-
+	_fget				+---
+	fget_unlocked		----
+
+File: vfs_vnops.c 
+	vn_io_fault			+---
+	foffset_lock_uio	+---
+	vn_write			----
+	get_advice			----
+	_vn_lock			----
+	foffset_unlock_uio	+---
+	
+File: ffs_vnops.c
+	ffs_write			----
+
+File: vfs_default.c
+	vop_stdunlock		----
+	vop_stdadvise		----
 ```
 
 ## Important Data Structures
+
+### I/O Data Structures
+
+```c
+/* From /sys/sys/_iovec.h */
+
+struct iovec {
+	void	*iov_base;	/* Base address. */
+	size_t	 iov_len;	/* Length. */
+};
+
+/* From /sys/sys/uio.h */
+
+struct uio {
+	struct	iovec *uio_iov;		/* scatter/gather list */
+	int	uio_iovcnt;		/* length of scatter/gather list */
+	off_t	uio_offset;		/* offset in target object */
+	ssize_t	uio_resid;		/* remaining bytes to process */
+	enum	uio_seg uio_segflg;	/* address space */
+	enum	uio_rw uio_rw;		/* operation */
+	struct	thread *uio_td;		/* owner */
+};
+```
 
 ### File Data Structures
 
@@ -60,6 +113,17 @@ struct filedescent {
 	uint8_t		 fde_flags;	/* per-process open file flags */
 	seq_t		 fde_seq;	/* keep file and caps in sync */
 };
+#define	fde_rights	fde_caps.fc_rights
+#define	fde_fcntls	fde_caps.fc_fcntls
+#define	fde_ioctls	fde_caps.fc_ioctls
+#define	fde_nioctls	fde_caps.fc_nioctls
+#define	fde_change_size	(offsetof(struct filedescent, fde_seq))
+
+struct fdescenttbl {
+	int	fdt_nfiles;		/* number of open files allocated */
+	struct	filedescent fdt_ofiles[0];	/* open files */
+};
+#define	fd_seq(fdt, fd)	(&(fdt)->fdt_ofiles[(fd)].fde_seq)
 
 /*
  * This structure is used for the management of descriptors.  It may be
@@ -85,25 +149,6 @@ struct filedesc {
 };
 
 /* From /sys/sys/file.h */
-
-/*
- * Kernel descriptor table.
- * One entry for each open kernel vnode and socket.
- *
- * Below is the list of locks that protects members in struct file.
- *
- * (a) f_vnode lock required (shared allows both reads and writes)
- * (f) protected with mtx_lock(mtx_pool_find(fp))
- * (d) cdevpriv_mtx
- * none	not locked
- */
-
-struct fadvise_info {
-	int		fa_advice;	/* (f) FADV_* type. */
-	off_t		fa_start;	/* (f) Region start. */
-	off_t		fa_end;		/* (f) Region end. */
-};
-
 
 struct file {
 	void		*f_data;	/* file descriptor specific data */
@@ -133,234 +178,168 @@ struct file {
 	 */
 	void		*f_label;	/* Place-holder for MAC label. */
 };
-
-struct fileops {
-	fo_rdwr_t	*fo_read;
-	fo_rdwr_t	*fo_write;
-	fo_truncate_t	*fo_truncate;
-	fo_ioctl_t	*fo_ioctl;
-	fo_poll_t	*fo_poll;
-	fo_kqfilter_t	*fo_kqfilter;
-	fo_stat_t	*fo_stat;
-	fo_close_t	*fo_close;
-	fo_chmod_t	*fo_chmod;
-	fo_chown_t	*fo_chown;
-	fo_sendfile_t	*fo_sendfile;
-	fo_seek_t	*fo_seek;
-	fo_fill_kinfo_t	*fo_fill_kinfo;
-	fo_mmap_t	*fo_mmap;
-	fo_flags_t	fo_flags;	/* DFLAG_* below */
-};
-
-#define DFLAG_PASSABLE	0x01	/* may be passed via unix sockets. */
-#define DFLAG_SEEKABLE	0x02	/* seekable / nonsequential */
-```
-
-### Vnode Data Structure
-
-```c
-/* From /sys/sys/vnode.h */
-
-struct vnode {
-	/*
-	 * Fields which define the identity of the vnode.  These fields are
-	 * owned by the filesystem (XXX: and vgone() ?)
-	 */
-	const char *v_tag;			/* u type of underlying data */
-	struct	vop_vector *v_op;		/* u vnode operations vector */
-	void	*v_data;			/* u private data for fs */
-
-	/*
-	 * Filesystem instance stuff
-	 */
-	struct	mount *v_mount;			/* u ptr to vfs we are in */
-	TAILQ_ENTRY(vnode) v_nmntvnodes;	/* m vnodes for mount point */
-
-	/*
-	 * Type specific fields, only one applies to any given vnode.
-	 * See #defines below for renaming to v_* namespace.
-	 */
-	union {
-		struct mount	*vu_mount;	/* v ptr to mountpoint (VDIR) */
-		struct socket	*vu_socket;	/* v unix domain net (VSOCK) */
-		struct cdev	*vu_cdev; 	/* v device (VCHR, VBLK) */
-		struct fifoinfo	*vu_fifoinfo;	/* v fifo (VFIFO) */
-	} v_un;
-
-	/*
-	 * vfs_hash: (mount + inode) -> vnode hash.  The hash value
-	 * itself is grouped with other int fields, to avoid padding.
-	 */
-	LIST_ENTRY(vnode)	v_hashlist;
-
-	/*
-	 * VFS_namecache stuff
-	 */
-	LIST_HEAD(, namecache) v_cache_src;	/* c Cache entries from us */
-	TAILQ_HEAD(, namecache) v_cache_dst;	/* c Cache entries to us */
-	struct namecache *v_cache_dd;		/* c Cache entry for .. vnode */
-
-	/*
-	 * Locking
-	 */
-	struct	lock v_lock;			/* u (if fs don't have one) */
-	struct	mtx v_interlock;		/* lock for "i" things */
-	struct	lock *v_vnlock;			/* u pointer to vnode lock */
-
-	/*
-	 * The machinery of being a vnode
-	 */
-	TAILQ_ENTRY(vnode) v_actfreelist;	/* f vnode active/free lists */
-	struct bufobj	v_bufobj;		/* * Buffer cache object */
-
-	/*
-	 * Hooks for various subsystems and features.
-	 */
-	struct vpollinfo *v_pollinfo;		/* i Poll events, p for *v_pi */
-	struct label *v_label;			/* MAC label for vnode */
-	struct lockf *v_lockf;		/* Byte-level advisory lock list */
-	struct rangelock v_rl;			/* Byte-range lock */
-
-	/*
-	 * clustering stuff
-	 */
-	daddr_t	v_cstart;			/* v start block of cluster */
-	daddr_t	v_lasta;			/* v last allocation  */
-	daddr_t	v_lastw;			/* v last write  */
-	int	v_clen;				/* v length of cur. cluster */
-
-	u_int	v_holdcnt;			/* I prevents recycling. */
-	u_int	v_usecount;			/* I ref count of users */
-	u_int	v_iflag;			/* i vnode flags (see below) */
-	u_int	v_vflag;			/* v vnode flags */
-	int	v_writecount;			/* v ref count of writers */
-	u_int	v_hash;
-	enum	vtype v_type;			/* u vnode type */
-};
-```
-
-### Namei Data Structures
-
-```c
-/* From /sys/sys/nameidata */
-
-struct componentname {
-	/*
-	 * Arguments to lookup.
-	 */
-	u_long	cn_nameiop;	/* namei operation */
-	u_int64_t cn_flags;	/* flags to namei */
-	struct	thread *cn_thread;/* thread requesting lookup */
-	struct	ucred *cn_cred;	/* credentials */
-	int	cn_lkflags;	/* Lock flags LK_EXCLUSIVE or LK_SHARED */
-	/*
-	 * Shared between lookup and commit routines.
-	 */
-	char	*cn_pnbuf;	/* pathname buffer */
-	char	*cn_nameptr;	/* pointer to looked up name */
-	long	cn_namelen;	/* length of looked up component */
-	long	cn_consume;	/* chars to consume in lookup() */
-};
-
-/*
- * Encapsulation of namei parameters.
- */
-struct nameidata {
-	/*
-	 * Arguments to namei/lookup.
-	 */
-	const	char *ni_dirp;		/* pathname pointer */
-	enum	uio_seg ni_segflg;	/* location of pathname */
-	cap_rights_t ni_rightsneeded;	/* rights required to look up vnode */
-	/*
-	 * Arguments to lookup.
-	 */
-	struct  vnode *ni_startdir;	/* starting directory */
-	struct	vnode *ni_rootdir;	/* logical root directory */
-	struct	vnode *ni_topdir;	/* logical top directory */
-	int	ni_dirfd;		/* starting directory for *at functions */
-	int	ni_strictrelative;	/* relative lookup only; no '..' */
-	/*
-	 * Results: returned from namei
-	 */
-	struct filecaps ni_filecaps;	/* rights the *at base has */
-	/*
-	 * Results: returned from/manipulated by lookup
-	 */
-	struct	vnode *ni_vp;		/* vnode of result */
-	struct	vnode *ni_dvp;		/* vnode of intermediate directory */
-	/*
-	 * Shared between namei and lookup/commit routines.
-	 */
-	size_t	ni_pathlen;		/* remaining chars in path */
-	char	*ni_next;		/* next location in pathname */
-	u_int	ni_loopcnt;		/* count of symlinks encountered */
-	/*
-	 * Lookup parameters: this structure describes the subset of
-	 * information from the nameidata structure that is passed
-	 * through the VOP interface.
-	 */
-	struct componentname ni_cnd;
-};
-```
-
-### Mount Data Structure
-
-```c
-/*
- * Structure per mounted filesystem.  Each mounted filesystem has an
- * array of operations and an instance record.  The filesystems are
- * put on a doubly linked list.
- *
- * Lock reference:
- *	m - mountlist_mtx
- *	i - interlock
- *	v - vnode freelist mutex
- *
- * Unmarked fields are considered stable as long as a ref is held.
- *
- */
-struct mount {
-	struct mtx	mnt_mtx;		/* mount structure interlock */
-	int		mnt_gen;		/* struct mount generation */
-#define	mnt_startzero	mnt_list
-	TAILQ_ENTRY(mount) mnt_list;		/* (m) mount list */
-	struct vfsops	*mnt_op;		/* operations on fs */
-	struct vfsconf	*mnt_vfc;		/* configuration info */
-	struct vnode	*mnt_vnodecovered;	/* vnode we mounted on */
-	struct vnode	*mnt_syncer;		/* syncer vnode */
-	int		mnt_ref;		/* (i) Reference count */
-	struct vnodelst	mnt_nvnodelist;		/* (i) list of vnodes */
-	int		mnt_nvnodelistsize;	/* (i) # of vnodes */
-	struct vnodelst	mnt_activevnodelist;	/* (v) list of active vnodes */
-	int		mnt_activevnodelistsize;/* (v) # of active vnodes */
-	int		mnt_writeopcount;	/* (i) write syscalls pending */
-	int		mnt_kern_flag;		/* (i) kernel only flags */
-	uint64_t	mnt_flag;		/* (i) flags shared with user */
-	struct vfsoptlist *mnt_opt;		/* current mount options */
-	struct vfsoptlist *mnt_optnew;		/* new options passed to fs */
-	int		mnt_maxsymlinklen;	/* max size of short symlink */
-	struct statfs	mnt_stat;		/* cache of filesystem stats */
-	struct ucred	*mnt_cred;		/* credentials of mounter */
-	void *		mnt_data;		/* private data */
-	time_t		mnt_time;		/* last time written*/
-	int		mnt_iosize_max;		/* max size for clusters, etc */
-	struct netexport *mnt_export;		/* export list */
-	struct label	*mnt_label;		/* MAC label for the fs */
-	u_int		mnt_hashseed;		/* Random seed for vfs_hash */
-	int		mnt_lockref;		/* (i) Lock reference count */
-	int		mnt_secondary_writes;   /* (i) # of secondary writes */
-	int		mnt_secondary_accwrites;/* (i) secondary wr. starts */
-	struct thread	*mnt_susp_owner;	/* (i) thread owning suspension */
-#define	mnt_endzero	mnt_gjprovider
-	char		*mnt_gjprovider;	/* gjournal provider name */
-	struct lock	mnt_explock;		/* vfs_export walkers lock */
-	TAILQ_ENTRY(mount) mnt_upper_link;	/* (m) we in the all uppers */
-	TAILQ_HEAD(, mount) mnt_uppers;		/* (m) upper mounts over us*/
-};
 ```
 
 ## Code Walkthrough
+
+### Pseudo Code Overview 
+
+```c
+int
+sys_write(td, uap)
+{
+	Check size of buffer;
+	fill uio struct with syscall args;
+	create iovec to point to uio struct;
+	call kern_writev;
+	return to syscall code;
+}
+
+int
+kern_writev(struct thread *td, int fd, struct uio *auio)
+{
+	init cap rights structure;
+	Obtain file ent ptr from fget_write;
+	Use file ent ptr to call dofilewrite;
+	call fdrop to drop ref on file ent;
+	return to sys_write; 
+}
+
+int
+fget_write(struct thread *td, int fd, cap_rights_t *rightsp, struct file *fpp)
+{
+	call _fget with flags == FWRITE and and seqp == NULL;
+	return result to kern_writev;
+}
+
+static __inline int
+_fget(struct thread *td, int fd, struct file **fpp, int flags,
+		cap_rights_t *needrightsp, seq_t *seqp)
+{
+	use td to obtain filedesc ptr (first entry?);
+	obtain file ent with fget_unlocked using filedesc ptr;
+	assert file status flags match flags arg. return EBADF if false;
+	return file ent ptr to kern_writev;
+}
+
+int
+fget_unlocked(struct filedesc *fdp, int fd, cap_rights_t *needrightsp,
+				struct file **fpp, seq_t *seqp)
+{
+	use filedesc to obtain filedesctbl ptr;
+	for(;;) {
+		obtain filedescent using fd arg;
+		if refcount is 0, force reload of filedescent;
+		check if we realloc filedesc tbl after incr ref,
+			if we did, drop ref and try again;
+		if filedesc tbl was not mod, break;
+	}
+	return file ent to _fget;
+}
+
+static int
+dofilewrite(td, fd, fp, auio, offset, flags)
+{
+	set iovec's operation to UIO_WRITE;
+	set iovec's td and offset;
+	call bwillwrite() if the vnode type is file and the foffset 
+		mutex is unlocked;
+	call vn_io_fault to complete the write operation;
+	if we were int before completing the write op, set error to
+		0 anyways;
+	return nb of chars written to kern_writev;
+}
+
+ * The vn_io_fault() is a wrapper around vn_read() and vn_write() to
+ * prevent the following deadlock:
+ *
+ * Assume that the thread A reads from the vnode vp1 into userspace
+ * buffer buf1 backed by the pages of vnode vp2.  If a page in buf1 is
+ * currently not resident, then system ends up with the call chain
+ *   vn_read() -> VOP_READ(vp1) -> uiomove() -> [Page Fault] ->
+ *     vm_fault(buf1) -> vnode_pager_getpages(vp2) -> VOP_GETPAGES(vp2)
+ * which establishes lock order vp1->vn_lock, then vp2->vn_lock.
+ * If, at the same time, thread B reads from vnode vp2 into buffer buf2
+ * backed by the pages of vnode vp1, and some page in buf2 is not
+ * resident, we get a reversed order vp2->vn_lock, then vp1->vn_lock.
+ *
+ * To prevent the lock order reversal and deadlock, vn_io_fault() does
+ * not allow page faults to happen during VOP_READ() or VOP_WRITE().
+ * Instead, it first tries to do the whole range i/o with pagefaults
+ * disabled. If all pages in the i/o buffer are resident and mapped,
+ * VOP will succeed (ignoring the genuine filesystem errors).
+ * Otherwise, we get back EFAULT, and vn_io_fault() falls back to do
+ * i/o in chunks, with all pages in the chunk prefaulted and held
+ * using vm_fault_quick_hold_pages().
+ *
+ * Filesystems using this deadlock avoidance scheme should use the
+ * array of the held pages from uio, saved in the curthread->td_ma,
+ * instead of doing uiomove().  A helper function
+ * vn_io_fault_uiomove() converts uiomove request into
+ * uiomove_fromphys() over td_ma array.
+ *
+ * Since vnode locks do not cover the whole i/o anymore, rangelocks
+ * make the current i/o request atomic with respect to other i/os and
+ * truncations.
+ */
+
+static int
+vn_io_fault(struct file *fp, struct uio *uio, struct ucred *active_cred,
+			int flags, struct thread *td)
+{
+	set doio = &vn_write;
+	obtain the file offset by calling foffset_lock_uio;
+	call vn_write;
+	update the file offset by calling foffset_unlock_uio;
+	return the retval from vn_write to dofilewrite;
+}
+
+void
+foffset_lock_uio(struct file *fp, struct *uio, int flags)
+{
+	/*
+	 * foffset_lock uses a sleepable mtx from a mtx pool to
+	 * acquire a lock on the file offset. This works simply
+	 * by sleeping foffset lock is available.
+	 *
+	 * FOF_OFFSET means use the offset value in uio arg.
+	 */
+	Call foffset_lock to assign the offset since
+		flags == 0x2 and FOF_OFFSET == 0x1;
+}
+
+vn_write
+
+get_advice
+
+vn_lock
+
+_vn_lock
+
+ffs_write (VOP_WRITE)
+
+vop_stdunlock (VOP_UNLOCK)
+
+vop_stdadvise (VOP_ADVISE)
+
+void
+foffset_unlock_uio(struct file *fp, struct uio *uio)
+{
+	/*
+	 * foffset_unlock uses a sleepable mtx from a mtx pool to 
+	 * set f_offset and f_nextoff, checks to see if we lost the
+	 * lock on foffset, and calls wakeup if any td's are waiting
+	 * on the foffset lock.
+	 *
+	 * FOF_OFFSET means use the offset value in uio arg.
+	 */
+	call foffset_unlock since flags == 0x2 and FOF_OFFSET == 1;
+}
+
+fdrop
+```
+
+### Documented Code
 
 ```c
 ```

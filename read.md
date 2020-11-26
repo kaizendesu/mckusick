@@ -23,7 +23,13 @@ sys_read
 		dofileread
 			vn_io_fault (fo_read)
 				foffset_lock_uio
-				doio
+				vn_read
+					get_advice
+					vn_lock
+					_vn_lock
+					ffs_read (VOP_READ)
+					vop_stdunlock (VOP_UNLOCK)
+					vop_stdadvise (VOP_ADVISE)
 				foffset_unlock_uio
 		fdrop
 ```
@@ -38,6 +44,30 @@ The second '+' means that I have read the code closely and heavily commented it.
 The third '+' means that I have added it to this document's code walkthrough.
 
 ```txt
+File: sys_generic.c
+	sys_read			----
+	kern_readv			----
+	dofileread			----
+
+File: kern_descrip.c
+	fget_read			----
+	_fget				----
+	fget_unlocked		----
+
+File: vfs_vnops.c
+	vn_io_fault			----
+	foffset_lock_uio	----
+	vn_read				----
+	get_advice			----
+	_vn_lock			----
+	foffset_unlock_uio	----
+
+File: ffs_vnops.c
+	ffs_read			----
+
+File: vfs_default.c
+	vop_stdunlock		----
+	vop_stdavise		----
 ```
 
 ## Important Data Structures
@@ -361,6 +391,10 @@ struct mount {
 ```
 
 ## Code Walkthrough
+
+### Code Flow with Description
+
+### Documented Code
 
 ```c
 ```
