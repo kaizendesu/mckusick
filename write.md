@@ -250,6 +250,7 @@ dofilewrite(td, fd, fp, auio, offset, flags)
 	return nb of chars written to kern_writev;
 }
 
+/*
  * The vn_io_fault() is a wrapper around vn_read() and vn_write() to
  * prevent the following deadlock:
  *
