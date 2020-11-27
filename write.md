@@ -28,6 +28,13 @@ sys_write
 					vn_lock
 					_vn_lock
 					ffs_write (VOP_WRITE)
+						ffs_balloc_ufs2 (UFS_BALLOC)
+							ufs_getlbns
+						ffs_alloc
+							ffs_hashalloc
+								ffs_alloccg
+									ffs_alloccgblk
+									ffs_mapsearch
 					vop_stdunlock (VOP_UNLOCK)
 					vop_stdadvise (VOP_ADVISE)
 				foffset_unlock_uio
@@ -64,6 +71,19 @@ File: vfs_vnops.c
 	
 File: ffs_vnops.c
 	ffs_write			----
+
+File: ffs_balloc.c
+	ffs_balloc_ufs2		----
+
+File: ufs_bmap.c
+	ufs_getlbns			----
+
+File: ffs_alloc.c
+	ffs_alloc			----
+	ffs_hashalloc		----
+	ffs_alloccg			----
+	ffs_alloccgblk		----
+	ffs_mapsearch		----
 
 File: vfs_default.c
 	vop_stdunlock		----
