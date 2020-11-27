@@ -64,13 +64,13 @@ File: kern_descrip.c
 File: vfs_vnops.c 
 	vn_io_fault			+---
 	foffset_lock_uio	+---
-	vn_write			----
-	get_advice			----
+	vn_write			+---
+	get_advice			+++-
 	_vn_lock			----
 	foffset_unlock_uio	+---
 	
 File: ffs_vnops.c
-	ffs_write			----
+	ffs_write			+---
 
 File: ffs_balloc.c
 	ffs_balloc_ufs2		----
@@ -329,19 +329,89 @@ foffset_lock_uio(struct file *fp, struct *uio, int flags)
 		flags == 0x2 and FOF_OFFSET == 0x1;
 }
 
-vn_write
+static int
+vn_write(fp, uio, active_cred, flags, td)
+{
+	call bwillwrite() to alert filesystem;
+	use file status flags assign io flags;
+	call vn_start_write() for reg files and block devs;
+	obtain i/o advice from get_advice if i/o doesn't conform
+		to file ent's i/o range;
+	call ffs_write to complete write at filesystem level;
+	flush pages and buffers with vop_stdavice;
+	return nb of chars written to dofilewrite;
+}
 
-get_advice
+static int
+get_advice(struct file *fp, struct uio *uio)
+{
+	set retval to default no advice (POSIX_FADV_NORMAL);
+	obtain sleepable mtx from pool;
+	lock mtx;
+	set retval to fp->f_advice->fa_advice if the params
+		in uio don't not fit within f_advice's i/o range;
+	unlock mtx;
+	return retval to vn_write;
+}
 
 vn_lock
 
 _vn_lock
 
-ffs_write (VOP_WRITE)
+static int
+ffs_write(ap)
+	struct vop_write_args /* {
+		struct vnode *a_vp;
+		struct uio *a_uio;
+		int a_ioflag;
+		struct ucred *a_cred;
+	} */ *ap;
+{
+	switch through vnode flags for error checking or mod uio_offset;
+	ensure file after write will not be too big;
+	
+	for (no error or words to write)
+	{
+		obtain lbn, blk offset, and xfersize;
+		extend file size if necessary with vnode_pager_setsize();
+		set BA_CLRBUF if blk will have empty portions after write;
+		call ufs_balloc_ufs2() to alloc block;
+		xfer ioflags to buffer;
+		update file size in dinode if necessary;
+		write contents to buffer or pgs depending on if buf is mapped
+			into kern;
+		clear buf if there was an error in prev step;
+		call bwrite for synch writes, use bawrite for asynch writes,
+			clustered writes in general via cluster_write, or delayed
+			writes otherwise via bdwrite;
+	}
+	truncate the file if we were not able to complete the entire write
+		with IO_UNIT set;
+	return nb of chars written to vn_write;
+}
+
+/*
+ * Balloc defines the structure of file system storage
+ * by allocating the physical blocks on a device given
+ * the inode and the logical block number in a file.
+ * This is the allocation strategy for UFS2. Above is
+ * the allocation strategy for UFS1.
+ */
+int
+ffs_balloc_ufs2(struct vnode *vp, off_t startoffset, int size,
+				struct ucred *cred, int flags, struct buf **bpp)
+{
+	
+}
 
 vop_stdunlock (VOP_UNLOCK)
 
-vop_stdadvise (VOP_ADVISE)
+int
+vop_stdadvise(struct vop_advise_args *ap)
+{
+	deactivate pages for POSIX_FADV_DONTNEED or keep them for
+		POSIX_FADV_WILLNEED. EINVAL otherwise;
+}
 
 void
 foffset_unlock_uio(struct file *fp, struct uio *uio)
