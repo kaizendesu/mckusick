@@ -1,8 +1,8 @@
 ## How to Read Operating System Code Effectively
 
 1. Create a flow diagram of all the relevant functions and their subroutines
-in the order that they are executed. The flow diagram will have a depth of
-four layers, with each layer describing a stack frame/context.
+in the order that they are executed. The flow diagram will have a minimum
+depth of four layers, with each layer describing a stack frame/context.
 
 2. Create the code reading checklist that will list every relevant function
 we want to read by filename and in the order they are called within that
@@ -19,14 +19,25 @@ the code for the most used data structures, identifying which header files they
 are defined in, reading the definitions of said structures, and also reading
 any detailed comments describing the structures and the overall system.
 
-4. Create the Code Walkthrough Overview section which describes in English
-what each function in the flow diagram does without any focus on the actual
-implementation. A summary for each function in the flow diagram MUST be
-completed before moving on to the fifth step.
+4. Create the Code Walkthrough section with two subheadings: Pseudocode Overview
+and Documented Code. Pseudocode Overview describes what each function in the flow
+diagram does without any focus on the actual implementation, while Documented Code
+is heavily commented code excerpts that illustrate the most significant details in
+the walkthrough.
 
-5. Read through the code line by line focusing on how each function accomplishes
-what we wrote in step four. Use the checklist to monitor your progress since
-code reading is not always a linear process.
+5. Read through each function in order line by line, focusing on what each code block
+is doing and creating inline comments that describe the code in plain english. Also
+include comments that break up large if statements and other sections of code that
+focus on something in particular. For example, if-statements with long special cases
+or a list of kernel asserts before calling an important function.
 
-6. Decide on which functions to include in the walkthrough document and copy
+When you finish reading through and documenting a function line by line, fill in its
+pseudocode counterpart in the Pseudocode Overview, describing what the function does
+without focusing on implementation details.
+
+6. After reading through every function line by line and creating its pseudocode
+counterpart, summarize the code in its entirety step by step, using only a single
+sentence to describe each major function does.
+
+7. Decide on which functions to include in the walkthrough document and copy
 them to it.
