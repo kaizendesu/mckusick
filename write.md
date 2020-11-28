@@ -52,22 +52,23 @@ The third '+' means that I have added it to this document's code walkthrough.
 
 ```txt
 File: sys_generic.c
-	sys_write			+++-
-	kern_writev			+++-
-	dofilewrite			+---
+	sys_write			++--
+	kern_writev			++--
+	dofilewrite			++--
 
 File: kern_descrip.c
-	fget_write			+++-
-	_fget				+---
-	fget_unlocked		----
+	fget_write			++--
+	_fget				++--
+	fget_unlocked		++--
 
 File: vfs_vnops.c 
 	vn_io_fault			+---
-	foffset_lock_uio	+---
-	vn_write			+---
-	get_advice			+++-
+	foffset_lock_uio	++--
+	do_vn_io_fault		++--
+	vn_write			++--
+	get_advice			++--
 	_vn_lock			----
-	foffset_unlock_uio	+---
+	foffset_unlock_uio	++--
 	
 File: ffs_vnops.c
 	ffs_write			+---
@@ -204,130 +205,57 @@ struct file {
 
 ### Pseudo Code Overview 
 
-```c
-int
-sys_write(td, uap)
-{
-	Check size of buffer;
-	fill uio struct with syscall args;
-	create iovec to point to uio struct;
-	call kern_writev;
-	return to syscall code;
+**sys_write**: Creates and initializes kernel i/o structs and calls kern\_writev.
+	* Checks size of buffer
+	* Fills uio struct with syscall args
+	* Creates iovec to point to uio struct
+	* Calls kern\_writev
+	* Returns kern\_writev's error value to syscall code
+
+**kern_writev**: Obtains the file entry and calls dowritefile.
+	* Initializes cap rights structure
+	* Obtains file entry ptr from fget\_write
+	* Uses file ent ptr to call dofilewrite
+	* Calls fdrop to drop ref on file ent
+	* Returns the error value from dofilewritefile to sys\_write
+
+**fget_write**: Wrapper function to \_fget that passes the FWRITE argument in particular.
+	* Calls \_fget with FWRITE as the flags arg and NULL for seqp
+	* Returns file entry to kern\_writev
+
+\_**fget**: Calls fget\_unlocked to obtain the appropriate file entry and returns it to fget\_write.
+	* Obtains file entry with fget\_unlocked
+	* Asserts file status flags match FWRITE and returns EBADF if false
+	* Returns file entry ptr to kern\_writev
+
+**fget_unlocked**: Obtains the file entry locklessly by looping until it can obtain the file entry with a nonzero ref count.
+	* Checks the refcount, forcing a reload if it is zero
+	* Checks if we have reallocated the descriptor table after
+	  atomically incrementing the ref count in case of preemption.
+	* Returns the file entry to \+fget
 }
 
-int
-kern_writev(struct thread *td, int fd, struct uio *auio)
-{
-	init cap rights structure;
-	Obtain file ent ptr from fget_write;
-	Use file ent ptr to call dofilewrite;
-	call fdrop to drop ref on file ent;
-	return to sys_write; 
-}
+**dofilewrite**: Fills the rest of the uio structure, calls bwillwrite to alert the filesystem, calls vn\_io\_fault and modifies its return value if necessary, sets the number of characters written into td\_retval, and finally returns vn\)io\_fault's retval to kern\_writev.
+	* Sets iovec's operation, thread, and offset
+	* Calls bwillwrite() for regular file vnodes
+	* Calls vn\_io\_fault
+	* If the syscall was interrupted before completing, sets the error
+	  value to zero
+	* Sets the number of characters written to td\_retval
+	* Returns the possibly modified error value of vn\_io\_fault to
+	  kern\_writev
 
-int
-fget_write(struct thread *td, int fd, cap_rights_t *rightsp, struct file *fpp)
-{
-	call _fget with flags == FWRITE and and seqp == NULL;
-	return result to kern_writev;
-}
+**vn_io_fault**:
+	* Sets _doio_ to vn\_write
+	* Obtains the file offset by calling foffset\_lock\_uio
+	* calls vn\_write
+	* Updates the file offset by calling foffset\_unlock\_uio
+	* Returns the retval from vn\_write to dofilewrite
 
-static __inline int
-_fget(struct thread *td, int fd, struct file **fpp, int flags,
-		cap_rights_t *needrightsp, seq_t *seqp)
-{
-	use td to obtain filedesc ptr (first entry?);
-	obtain file ent with fget_unlocked using filedesc ptr;
-	assert file status flags match flags arg. return EBADF if false;
-	return file ent ptr to kern_writev;
-}
+**foffset_lock_uio**: Uses a sleepable mutex from the mutex pool to acquire the lock on the file's offset.
+	* Calls foffset\_lock to obtain the file offset
 
-int
-fget_unlocked(struct filedesc *fdp, int fd, cap_rights_t *needrightsp,
-				struct file **fpp, seq_t *seqp)
-{
-	use filedesc to obtain filedesctbl ptr;
-	for(;;) {
-		obtain filedescent using fd arg;
-		if refcount is 0, force reload of filedescent;
-		check if we realloc filedesc tbl after incr ref,
-			if we did, drop ref and try again;
-		if filedesc tbl was not mod, break;
-	}
-	return file ent to _fget;
-}
-
-static int
-dofilewrite(td, fd, fp, auio, offset, flags)
-{
-	set iovec's operation to UIO_WRITE;
-	set iovec's td and offset;
-	call bwillwrite() if the vnode type is file and the foffset 
-		mutex is unlocked;
-	call vn_io_fault to complete the write operation;
-	if we were int before completing the write op, set error to
-		0 anyways;
-	return nb of chars written to kern_writev;
-}
-
-/*
- * The vn_io_fault() is a wrapper around vn_read() and vn_write() to
- * prevent the following deadlock:
- *
- * Assume that the thread A reads from the vnode vp1 into userspace
- * buffer buf1 backed by the pages of vnode vp2.  If a page in buf1 is
- * currently not resident, then system ends up with the call chain
- *   vn_read() -> VOP_READ(vp1) -> uiomove() -> [Page Fault] ->
- *     vm_fault(buf1) -> vnode_pager_getpages(vp2) -> VOP_GETPAGES(vp2)
- * which establishes lock order vp1->vn_lock, then vp2->vn_lock.
- * If, at the same time, thread B reads from vnode vp2 into buffer buf2
- * backed by the pages of vnode vp1, and some page in buf2 is not
- * resident, we get a reversed order vp2->vn_lock, then vp1->vn_lock.
- *
- * To prevent the lock order reversal and deadlock, vn_io_fault() does
- * not allow page faults to happen during VOP_READ() or VOP_WRITE().
- * Instead, it first tries to do the whole range i/o with pagefaults
- * disabled. If all pages in the i/o buffer are resident and mapped,
- * VOP will succeed (ignoring the genuine filesystem errors).
- * Otherwise, we get back EFAULT, and vn_io_fault() falls back to do
- * i/o in chunks, with all pages in the chunk prefaulted and held
- * using vm_fault_quick_hold_pages().
- *
- * Filesystems using this deadlock avoidance scheme should use the
- * array of the held pages from uio, saved in the curthread->td_ma,
- * instead of doing uiomove().  A helper function
- * vn_io_fault_uiomove() converts uiomove request into
- * uiomove_fromphys() over td_ma array.
- *
- * Since vnode locks do not cover the whole i/o anymore, rangelocks
- * make the current i/o request atomic with respect to other i/os and
- * truncations.
- */
-
-static int
-vn_io_fault(struct file *fp, struct uio *uio, struct ucred *active_cred,
-			int flags, struct thread *td)
-{
-	set doio = &vn_write;
-	obtain the file offset by calling foffset_lock_uio;
-	call vn_write;
-	update the file offset by calling foffset_unlock_uio;
-	return the retval from vn_write to dofilewrite;
-}
-
-void
-foffset_lock_uio(struct file *fp, struct *uio, int flags)
-{
-	/*
-	 * foffset_lock uses a sleepable mtx from a mtx pool to
-	 * acquire a lock on the file offset. This works simply
-	 * by sleeping foffset lock is available.
-	 *
-	 * FOF_OFFSET means use the offset value in uio arg.
-	 */
-	Call foffset_lock to assign the offset since
-		flags == 0x2 and FOF_OFFSET == 0x1;
-}
+**do_vn_io_fault**: Returns true if the i/o is in userspace, the vnode type is regular file, the userspace pointer to the mount point is not NULL, if page faults are disabled in read operations (MNTK\_NO\_IOPF), and if vn\_io\_fault\_enable is set.
 
 static int
 vn_write(fp, uio, active_cred, flags, td)
@@ -413,22 +341,11 @@ vop_stdadvise(struct vop_advise_args *ap)
 		POSIX_FADV_WILLNEED. EINVAL otherwise;
 }
 
-void
-foffset_unlock_uio(struct file *fp, struct uio *uio)
-{
-	/*
-	 * foffset_unlock uses a sleepable mtx from a mtx pool to 
-	 * set f_offset and f_nextoff, checks to see if we lost the
-	 * lock on foffset, and calls wakeup if any td's are waiting
-	 * on the foffset lock.
-	 *
-	 * FOF_OFFSET means use the offset value in uio arg.
-	 */
-	call foffset_unlock since flags == 0x2 and FOF_OFFSET == 1;
-}
+**foffset_unlock_uio**: Uses a sleepable mutex from the mutex pool to update the file's offset and wake ups any threads waiting on the file offset lock.
+	* Calls foffset_unlock to update the file offset and next offset
+	* Calls wakeup if there are any threads waiting on the file offset lock
 
-fdrop
-```
+**fdrop**:
 
 ### Documented Code
 
