@@ -66,12 +66,15 @@ File: vfs_vnops.c
 	foffset_lock_uio	++--
 	do_vn_io_fault		++--
 	vn_write			++--
+	vn_start_write		+---
 	get_advice			++--
-	_vn_lock			----
+	_vn_lock			++--
+	vn_io_fault_uiomove	----
+	vn_io_fault_pgmove	----
 	foffset_unlock_uio	++--
 	
 File: ffs_vnops.c
-	ffs_write			+---
+	ffs_write			++--
 
 File: ffs_balloc.c
 	ffs_balloc_ufs2		----
@@ -85,6 +88,9 @@ File: ffs_alloc.c
 	ffs_alloccg			----
 	ffs_alloccgblk		----
 	ffs_mapsearch		----
+
+File: ffs_inode.c
+	ffs_update			----
 
 File: vfs_default.c
 	vop_stdunlock		----
@@ -257,44 +263,27 @@ struct file {
 
 **do_vn_io_fault**: Returns true if the i/o is in userspace, the vnode type is regular file, the userspace pointer to the mount point is not NULL, if page faults are disabled in read operations (MNTK\_NO\_IOPF), and if vn\_io\_fault\_enable is set.
 
-static int
-vn_write(fp, uio, active_cred, flags, td)
-{
-	call bwillwrite() to alert filesystem;
-	use file status flags assign io flags;
-	call vn_start_write() for reg files and block devs;
-	obtain i/o advice from get_advice if i/o doesn't conform
-		to file ent's i/o range;
-	call ffs_write to complete write at filesystem level;
-	flush pages and buffers with vop_stdavice;
-	return nb of chars written to dofilewrite;
-}
+**vn_write**: Alerts the filesystem about the write operation, checks whether the vnode is suspended for writing, obtains i/o advice from get\_advice, calls ffs\_write and returns its error value to dofilewrite. 
+	* Calls bwillwrite to alert filesystem
+	* Uses file status flags assign io flags
+	* Calls vn\_start\_write for everything except character devices
+	* Obtains i/o advice from get\_advice
+	* Calls ffs\_write
+	* Flushes pages/buffers with vop\_stdavice for POSIX\_FADV\_NOREUSE
+	* Returns ffs\_write's error value to dofilewrite;
 
-static int
-get_advice(struct file *fp, struct uio *uio)
-{
-	set retval to default no advice (POSIX_FADV_NORMAL);
-	obtain sleepable mtx from pool;
-	lock mtx;
-	set retval to fp->f_advice->fa_advice if the params
-		in uio don't not fit within f_advice's i/o range;
-	unlock mtx;
-	return retval to vn_write;
-}
+**vn_start_write**:
 
-vn_lock
+**get_advice**: Checks whether i/o operation conforms to the i/o range specified in the file entry's f\_advice structure, and assigns that structures advice if it does not.
+	* Sets retval to default no advice (POSIX\_FADV\_NORMAL)
+	* Obtains sleepable mutex from the mutex pool and locks it
+	* Modifies retval if the i/o doesn't conform to the file entry's
+	  i/o range in fp->f_advice
+	* Unlocks the mutex and returns reval to vn\_write
 
-_vn_lock
+\_**vn**\_**lock**: Attempts to acquire a lock on a vnode, looping until it is successful and potentially returning doomed vnodes if LK\_RETRY is set.
 
-static int
-ffs_write(ap)
-	struct vop_write_args /* {
-		struct vnode *a_vp;
-		struct uio *a_uio;
-		int a_ioflag;
-		struct ucred *a_cred;
-	} */ *ap;
-{
+**ffs_write**:
 	switch through vnode flags for error checking or mod uio_offset;
 	ensure file after write will not be too big;
 	
@@ -318,31 +307,22 @@ ffs_write(ap)
 	return nb of chars written to vn_write;
 }
 
-/*
- * Balloc defines the structure of file system storage
- * by allocating the physical blocks on a device given
- * the inode and the logical block number in a file.
- * This is the allocation strategy for UFS2. Above is
- * the allocation strategy for UFS1.
- */
-int
-ffs_balloc_ufs2(struct vnode *vp, off_t startoffset, int size,
-				struct ucred *cred, int flags, struct buf **bpp)
-{
-	
-}
+**ffs_balloc_ufs2**:
 
-vop_stdunlock (VOP_UNLOCK)
+**vn_io_fault_uiomove**:
 
-int
-vop_stdadvise(struct vop_advise_args *ap)
-{
-	deactivate pages for POSIX_FADV_DONTNEED or keep them for
-		POSIX_FADV_WILLNEED. EINVAL otherwise;
-}
+**vn_io_fault_pgmove**:
+
+**ffs_update**:
+
+**vop_stdunlock**:
+
+
+**vop_stdadvise**: Deactives any pages used in the write for POSIX\_FADV\_DONTNEED, does nothing for POSIX\_FADV\_WILLNEED, and returns EINVAL otherwise.
+
 
 **foffset_unlock_uio**: Uses a sleepable mutex from the mutex pool to update the file's offset and wake ups any threads waiting on the file offset lock.
-	* Calls foffset_unlock to update the file offset and next offset
+	* Calls foffset\_unlock to update the file offset and next offset
 	* Calls wakeup if there are any threads waiting on the file offset lock
 
 **fdrop**:
