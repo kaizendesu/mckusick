@@ -283,28 +283,26 @@ struct file {
 
 \_**vn**\_**lock**: Attempts to acquire a lock on a vnode, looping until it is successful and potentially returning doomed vnodes if LK\_RETRY is set.
 
-**ffs_write**:
-	switch through vnode flags for error checking or mod uio_offset;
-	ensure file after write will not be too big;
-	
-	for (no error or words to write)
-	{
-		obtain lbn, blk offset, and xfersize;
-		extend file size if necessary with vnode_pager_setsize();
-		set BA_CLRBUF if blk will have empty portions after write;
-		call ufs_balloc_ufs2() to alloc block;
-		xfer ioflags to buffer;
-		update file size in dinode if necessary;
-		write contents to buffer or pgs depending on if buf is mapped
-			into kern;
-		clear buf if there was an error in prev step;
-		call bwrite for synch writes, use bawrite for asynch writes,
-			clustered writes in general via cluster_write, or delayed
-			writes otherwise via bdwrite;
-	}
-	truncate the file if we were not able to complete the entire write
-		with IO_UNIT set;
-	return nb of chars written to vn_write;
+**ffs_write**: Checks if the file size after write is too large for the file system, determines whether the write will require an update to the vnode and disk inode's size fields, loops until the i/o is complete or there is an error, and returns to vn\_write.
+	* Modifies uio\_offset for IO\_APPEND flags;
+	* Checks if file size after write is larger than max file size for
+		the vnode's filesystem
+	* Loop: Obtains logical block number and block offset
+	* Loop: Calculates xfersize as the minimum of characters to write and
+		leftover unwritten characters in the buffer to determine whether
+		to set the BA_CLRBUF flag for read-mod-writes. Also call 
+		vm\_pager\_setsize if the write will cause the file to grow
+	* Loop: Allocates a buffer with ufs\_balloc\_ufs2
+	* Loop: Updates the disk inode if the write will cause the file to grow
+	* Loop: Fills in the buffer with either a uiomove or pgmove 
+	* Loop: Clears the buf if there was an error in the prev step
+	* Loop: Calls bwrite for synch writes, bawrite for asynch writes,
+			or else in general clustered writes via cluster_write, 
+			or delayed writes otherwise via bdwrite
+	* Loop: Repeat the loop if not finished and no errors
+	* Truncates the file if we were not able to complete the entire write
+		with IO_UNIT set
+	* Returns something to vn\_write
 }
 
 **ffs_balloc_ufs2**:
