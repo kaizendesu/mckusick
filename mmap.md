@@ -98,9 +98,9 @@ File: pmap.h
 	pte_store					----
 ```
 
-## Important Data Structures
+## Important Data Structures and Algorithms
 
-### Splay Trees
+### Splay Tree Rotations
 
 ![](assets/splay_trees.jpeg)
 
