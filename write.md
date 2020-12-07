@@ -212,104 +212,108 @@ struct file {
 ### Pseudo Code Overview 
 
 **sys_write**: Creates and initializes kernel i/o structs and calls kern\_writev.
-	* Checks size of buffer
-	* Fills uio struct with syscall args
-	* Creates iovec to point to uio struct
-	* Calls kern\_writev
-	* Returns kern\_writev's error value to syscall code
+
+* Checks size of buffer
+* Fills uio struct with syscall args
+* Creates iovec to point to uio struct
+* Calls kern\_writev
+* Returns kern\_writev's error value to syscall code
 
 **kern_writev**: Obtains the file entry and calls dowritefile.
-	* Initializes cap rights structure
-	* Obtains file entry ptr from fget\_write
-	* Uses file ent ptr to call dofilewrite
-	* Calls fdrop to drop ref on file ent
-	* Returns the error value from dofilewritefile to sys\_write
+
+* Initializes cap rights structure
+* Obtains file entry ptr from fget\_write
+* Uses file ent ptr to call dofilewrite
+* Calls fdrop to drop ref on file ent
+* Returns the error value from dofilewritefile to sys\_write
 
 **fget_write**: Wrapper function to \_fget that passes the FWRITE argument in particular.
-	* Calls \_fget with FWRITE as the flags arg and NULL for seqp
-	* Returns file entry to kern\_writev
+
+* Calls \_fget with FWRITE as the flags arg and NULL for seqp
+* Returns file entry to kern\_writev
 
 \_**fget**: Calls fget\_unlocked to obtain the appropriate file entry and returns it to fget\_write.
-	* Obtains file entry with fget\_unlocked
-	* Asserts file status flags match FWRITE and returns EBADF if false
-	* Returns file entry ptr to kern\_writev
 
-**fget_unlocked**: Obtains the file entry locklessly by looping until it can obtain the file entry with a nonzero ref count.
-	* Checks the refcount, forcing a reload if it is zero
-	* Checks if we have reallocated the descriptor table after
-	  atomically incrementing the ref count in case of preemption.
-	* Returns the file entry to \+fget
-}
+* Obtains file entry with fget\_unlocked
+* Asserts file status flags match FWRITE and returns EBADF if false
+* Returns file entry ptr to kern\_writev
+
+**fget\_unlocked**: Obtains the file entry locklessly by looping until it can obtain the file entry with a nonzero ref count.
+
+* Checks the refcount, forcing a reload if it is zero
+* Checks if we have reallocated the descriptor table after atomically incrementing the ref count in case of preemption.
+* Returns the file entry to \_fget
+
 
 **dofilewrite**: Fills the rest of the uio structure, calls bwillwrite to alert the filesystem, calls vn\_io\_fault and modifies its return value if necessary, sets the number of characters written into td\_retval, and finally returns vn\)io\_fault's retval to kern\_writev.
-	* Sets iovec's operation, thread, and offset
-	* Calls bwillwrite() for regular file vnodes
-	* Calls vn\_io\_fault
-	* If the syscall was interrupted before completing, sets the error
-	  value to zero
-	* Sets the number of characters written to td\_retval
-	* Returns the possibly modified error value of vn\_io\_fault to
-	  kern\_writev
 
-**vn_io_fault**:
-	* Sets _doio_ to vn\_write
-	* Obtains the file offset by calling foffset\_lock\_uio
-	* calls vn\_write
-	* Updates the file offset by calling foffset\_unlock\_uio
-	* Returns the retval from vn\_write to dofilewrite
+* Sets iovec's operation, thread, and offset
+* Calls bwillwrite() for regular file vnodes
+* Calls vn\_io\_fault
+* If the syscall was interrupted before completing, sets the error value to zero
+* Sets the number of characters written to td\_retval
+* Returns the possibly modified error value of vn\_io\_fault to kern\_writev
 
-**foffset_lock_uio**: Uses a sleepable mutex from the mutex pool to acquire the lock on the file's offset.
-	* Calls foffset\_lock to obtain the file offset
+**vn\_io\_fault**:
 
-**do_vn_io_fault**: Returns true if the i/o is in userspace, the vnode type is regular file, the userspace pointer to the mount point is not NULL, if page faults are disabled in read operations (MNTK\_NO\_IOPF), and if vn\_io\_fault\_enable is set.
+* Sets _doio_ to vn\_write
+* Obtains the file offset by calling foffset\_lock\_uio
+* Calls vn\_write
+* Updates the file offset by calling foffset\_unlock\_uio
+* Returns the retval from vn\_write to dofilewrite
+
+**foffset\_lock\_uio**: Uses a sleepable mutex from the mutex pool to acquire the lock on the file's offset.
+
+* Calls foffset\_lock to obtain the file offset
+
+**do\_vn\_io\_fault**: Returns true if the i/o is in userspace, the vnode type is regular file, the userspace pointer to the mount point is not NULL, if page faults are disabled in read operations (MNTK\_NO\_IOPF), and if vn\_io\_fault\_enable is set.
 
 **vn_write**: Alerts the filesystem about the write operation, checks whether the vnode is suspended for writing, obtains i/o advice from get\_advice, calls ffs\_write and returns its error value to dofilewrite. 
-	* Calls bwillwrite to alert filesystem
-	* Uses file status flags assign io flags
-	* Calls vn\_start\_write for everything except character devices
-	* Obtains i/o advice from get\_advice
-	* Calls ffs\_write
-	* Flushes pages/buffers with vop\_stdavice for POSIX\_FADV\_NOREUSE
-	* Returns ffs\_write's error value to dofilewrite;
 
-**vn_start_write**:
+* Calls bwillwrite to alert filesystem
+* Uses file status flags assign io flags
+* Calls vn\_start\_write for everything except character devices
+* Obtains i/o advice from get\_advice
+* Calls ffs\_write
+* Flushes pages/buffers with vop\_stdavice for POSIX\_FADV\_NOREUSE
+* Returns ffs\_write's error value to dofilewrite;
+
+**vn\_start\_write**:
 
 **get_advice**: Checks whether i/o operation conforms to the i/o range specified in the file entry's f\_advice structure, and assigns that structures advice if it does not.
-	* Sets retval to default no advice (POSIX\_FADV\_NORMAL)
-	* Obtains sleepable mutex from the mutex pool and locks it
-	* Modifies retval if the i/o doesn't conform to the file entry's
-	  i/o range in fp->f_advice
-	* Unlocks the mutex and returns reval to vn\_write
 
-\_**vn**\_**lock**: Attempts to acquire a lock on a vnode, looping until it is successful and potentially returning doomed vnodes if LK\_RETRY is set.
+* Sets retval to default no advice (POSIX\_FADV\_NORMAL)
+* Obtains sleepable mutex from the mutex pool and locks it
+* Modifies retval if the i/o doesn't conform to the file entry's i/o range in fp-\>f\_advice
+* Unlocks the mutex and returns reval to vn\_write
+
+\_**vn\_lock**: Attempts to acquire a lock on a vnode, looping until it is successful and potentially returning doomed vnodes if LK\_RETRY is set.
 
 **ffs_write**: Checks if the file size after write is too large for the file system, determines whether the write will require an update to the vnode and disk inode's size fields, loops until the i/o is complete or there is an error, and returns to vn\_write.
-	* Modifies uio\_offset for IO\_APPEND flags;
-	* Checks if file size after write is larger than max file size for
-		the vnode's filesystem
-	* Loop: Obtains logical block number and block offset
-	* Loop: Calculates xfersize as the minimum of characters to write and
+
+* Modifies uio\_offset for IO\_APPEND flags
+* Checks if file size after write is larger than max file size for the vnode's filesystem
+* Loop: Obtains logical block number and block offset
+* Loop: Calculates xfersize as the minimum of characters to write and
 		leftover unwritten characters in the buffer to determine whether
 		to set the BA_CLRBUF flag for read-mod-writes. Also call 
 		vm\_pager\_setsize if the write will cause the file to grow
-	* Loop: Allocates a buffer with ufs\_balloc\_ufs2
-	* Loop: Updates the disk inode if the write will cause the file to grow
-	* Loop: Fills in the buffer with either a uiomove or pgmove 
-	* Loop: Clears the buf if there was an error in the prev step
-	* Loop: Calls bwrite for synch writes, bawrite for asynch writes,
+* Loop: Allocates a buffer with ufs\_balloc\_ufs2
+* Loop: Updates the disk inode if the write will cause the file to grow
+* Loop: Fills in the buffer with either a uiomove or pgmove 
+* Loop: Clears the buf if there was an error in the prev step
+* Loop: Calls bwrite for synch writes, bawrite for asynch writes,
 			or else in general clustered writes via cluster_write, 
 			or delayed writes otherwise via bdwrite
-	* Loop: Repeat the loop if not finished and no errors
-	* Truncates the file if we were not able to complete the entire write
-		with IO_UNIT set
-	* Returns something to vn\_write
-}
+* Loop: Repeat the loop if not finished and no errors
+* Truncates the file if we were not able to complete the entire write with IO\_UNIT set
+* Returns something to vn\_write
 
-**ffs_balloc_ufs2**:
+**ffs\_balloc\_ufs2**:
 
-**vn_io_fault_uiomove**:
+**vn\_io\_fault\_uiomove**:
 
-**vn_io_fault_pgmove**:
+**vn\_io\_fault\_pgmove**:
 
 **ffs_update**:
 
@@ -319,9 +323,10 @@ struct file {
 **vop_stdadvise**: Deactives any pages used in the write for POSIX\_FADV\_DONTNEED, does nothing for POSIX\_FADV\_WILLNEED, and returns EINVAL otherwise.
 
 
-**foffset_unlock_uio**: Uses a sleepable mutex from the mutex pool to update the file's offset and wake ups any threads waiting on the file offset lock.
-	* Calls foffset\_unlock to update the file offset and next offset
-	* Calls wakeup if there are any threads waiting on the file offset lock
+**foffset\_unlock\_uio**: Uses a sleepable mutex from the mutex pool to update the file's offset and wake ups any threads waiting on the file offset lock.
+
+* Calls foffset\_unlock to update the file offset and next offset
+* Calls wakeup if there are any threads waiting on the file offset lock
 
 **fdrop**:
 

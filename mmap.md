@@ -109,49 +109,46 @@ File: pmap.h
 ### Pseudo Code Overview 
 
 **sys_mmap**: Aligns file position on a page boundary, rounds size up to a multiple of PAGE\_SIZE, calls fget\_mmap to obtain the file entry pointer, and calls vn\_mmap.
-	* Enforces mmap's constraints for old binaries and/or anonymous mappings
-	* Checks flags for illegal bits or invalid settings
-	* Aligns the file position on a page boundary and adds its remainder modulo
-		PAGE_SIZE to size and rounds up
-	* Checks if alignment >= 12 bits and fits inside a void pointer
-	* Checks that the mapping fits inside user VM space and does not
-		wraparound/overflow
-	* Moves the hint to the end of a largest possible data segment if it is
-		between vm_taddr and vm_daddr + lim_max(td, RLIMIT_DATA)
-	* Calls fget\_mmap to obtain a pointer to the file entry
-	* Calls vn\_mmap
-	* Sets addr + pageoff as the retval and returns the error from either
-		vn\_mmap
+
+* Enforces mmap's constraints for old binaries and/or anonymous mappings
+* Checks flags for illegal bits or invalid settings
+* Aligns the file position on a page boundary and adds its remainder modulo PAGE\_SIZE to size and rounds up
+* Checks if alignment >= 12 bits and fits inside a void pointer
+* Checks that the mapping fits inside user VM space and does not wraparound/overflow
+* Moves the hint to the end of a largest possible data segment if it is between vm\_taddr and vm\_daddr + lim\_max(td, RLIMIT\_DATA)
+* Calls fget\_mmap to obtain a pointer to the file entry
+* Calls vn\_mmap
+* Sets addr + pageoff as the retval and returns the error from either vn\_mmap
 
 **fget_mmap**: Calls \_fget by passing 0 for flags and NULL for seq lock pointer.
 
 **vn_mmap**: Checks that file and memory protections are compatible, sets max protections, calls vm\_mmap\_vnode to obtain the backing object of the file, and calls vm\_mmap\_object to insert the object into the thread's va space.
-	* Uses mount point to set VM\_PROT\_EXECUTE
-	* Sets VM\_PROT\_READ and VM\_PROT\_WRITE based on flags
-	* Restricts protections to cap\_maxprot with &=
-	* Calls vm\_mmap\_vnode to obtain backing object of file
-	* Calls vm\_mmap\_object to insert the object into the thread's va space
-	* Returns the error value from vm\_mmap\_object
 
-**vm_mmap_vnode**: Acquires a lock on the vnode, ensures the object points to the vnode, obtains file attributes to update object size, calls vm\_pager\_allocate and returns its error value.
-	* Sets the appropriate lock type based on mapping and memory protections
-	* Obtains a lock on the vnode
-	* Uses vnode to obtain a pointer to an object
-	* Checks if the object points back to the vnode. If it doesn't, we 
-		release the vnode and acquire the lock on the vnode it points to
-	* Calls VOP\_GETATTR to obtain file attributes
-	* Sets object size equal to size specified in file attributes
-	* Calls vm\_pager\_allocate to allocate a vnode pager and return the
-		backing object
-	* Release the vnode and return vm\_pager\_allocate's error value
+* Uses mount point to set VM\_PROT\_EXECUTE
+* Sets VM\_PROT\_READ and VM\_PROT\_WRITE based on flags
+* Restricts protections to cap\_maxprot with &=
+* Calls vm\_mmap\_vnode to obtain backing object of file
+* Calls vm\_mmap\_object to insert the object into the thread's va space
+* Returns the error value from vm\_mmap\_object
 
-**vm_pager_allocate**: Calls vnode\_pager\_alloc using the type argument as an index into pagertab and returns its error value.
+**vm\_mmap\_vnode**: Acquires a lock on the vnode, ensures the object points to the vnode, obtains file attributes to update object size, calls vm\_pager\_allocate and returns its error value.
 
-**vnode_pager_alloc**: Obtains a write lock on the vnode's object if it exists or allocates a new one using vm\_object\_allocate if it doesn't, sets its handle if necessary, increments its reference count, releases the write lock and the vnode reference, and returns the object. 
+* Sets the appropriate lock type based on mapping and memory protections
+* Obtains a lock on the vnode
+* Uses vnode to obtain a pointer to an object
+* Checks if the object points back to the vnode. If it doesn't, we release the vnode and acquire the lock on the vnode it points to
+* Calls VOP\_GETATTR to obtain file attributes
+* Sets object size equal to size specified in file attributes
+* Calls vm\_pager\_allocate to allocate a vnode pager and return the backing object
+* Release the vnode and return vm\_pager\_allocate's error value
 
-**vm_object_allocate**: Zone allocates an object, calls \_vm\_object\_allocate to initialize it, and returns the object.
+**vm\_pager\_allocate**: Calls vnode\_pager\_alloc using the type argument as an index into pagertab and returns its error value.
 
-\_**vm_object_allocate**: Initializes its memq tailq and shadow object list, sets flags to 0, sets the size of the object, its generation and reference count to 1, handle, backing object and backing object offset to 0, and returns.
+**vnode\_pager\_alloc**: Obtains a write lock on the vnode's object if it exists or allocates a new one using vm\_object\_allocate if it doesn't, sets its handle if necessary, increments its reference count, releases the write lock and the vnode reference, and returns the object. 
+
+**vm\_object\_allocate**: Zone allocates an object, calls \_vm\_object\_allocate to initialize it, and returns the object.
+
+\_**vm\_object\_allocate**: Initializes its memq tailq and shadow object list, sets flags to 0, sets the size of the object, its generation and reference count to 1, handle, backing object and backing object offset to 0, and returns.
 
 ### Documented Code
 
