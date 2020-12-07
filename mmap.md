@@ -100,6 +100,10 @@ File: pmap.h
 
 ## Important Data Structures
 
+### Splay Trees
+
+![](assets/splay_trees.jpeg)
+
 ## Code Walkthrough
 
 ### Pseudo Code Overview 
