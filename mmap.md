@@ -76,14 +76,14 @@ File: vm_object.c
 File: vm_map.c
 	vm_map_find					++--
 	vm_map_findspace			++--
-	vm_map_entry_splay			+---
+	vm_map_entry_splay			----
 	vm_map_insert				++--
 	vm_map_lookup_entry			----
 	vm_map_entry_create			++--
 	vm_map_entry_link			++--
 	vm_map_entry_set_max_free	----
 	vm_map_simplify_entry		----
-	vm_map_pmap_enter			+---	(need help with this one)
+	vm_map_pmap_enter			++--
 
 File: vm_page.c
 	vm_page_find_least			----
