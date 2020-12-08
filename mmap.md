@@ -54,34 +54,33 @@ The third '+' means that I have added it to this document's code walkthrough.
 ```txt
 File: vm_mmap.c
 	sys_mmap					+---
-	vm_mmap_vnode				+---
-	vm_mmap_object				----
-	vm_map_find					----
+	vm_mmap_vnode				++--
+	vm_mmap_object				++--
 
 File: kern_descrip.c
-	fget_mmap					+---
+	fget_mmap					++--
 
 File: vfs_vnops.c
 	vn_mmap						+---
 
 File: vm_pager.c
-	vm_pager_allocate			+---
+	vm_pager_allocate			++--
 
 File: vnode_pager.c
-	vnode_pager_alloc			+---
+	vnode_pager_alloc			++--
 
 File: vm_object.c
 	vm_object_allocate			+---
 	_vm_object_allocate			+---
 
 File: vm_map.c
-	vm_map_find					----
-	vm_map_findspace			----
+	vm_map_find					++--
+	vm_map_findspace			++--
 	vm_map_entry_splay			----
-	vm_map_insert				----
+	vm_map_insert				++--
 	vm_map_lookup_entry			----
-	vm_map_entry_create			----
-	vm_map_entry_link			----
+	vm_map_entry_create			++--
+	vm_map_entry_link			+---
 	vm_map_entry_set_max_free	----
 	vm_map_simplify_entry		----
 	vm_map_pmap_enter			----
@@ -149,6 +148,49 @@ File: pmap.h
 **vm\_object\_allocate**: Zone allocates an object, calls \_vm\_object\_allocate to initialize it, and returns the object.
 
 \_**vm\_object\_allocate**: Initializes its memq tailq and shadow object list, sets flags to 0, sets the size of the object, its generation and reference count to 1, handle, backing object and backing object offset to 0, and returns.
+
+**vm\_mmap\_object**: Checks if the mapping will exceed process resource limits, determines if mmap will search for space, determines how many pages we will prefault if any, determines if we will copy on write, and inserts the mapping with either vm\_map\_find or vm\_map\_fixed.
+
+1. Checks if the mapping will exceed the proc's virtual memory limit or wired memory limit
+2. Catches any nonaligned mapping requests from device drivers
+3. Determines whether mmap will search for space and fails any attempt to map on an unaligned address.
+4. Sets the copy-on-write flags based on the flag settings
+5. Sets the strategy for searching for space and calls vm\_map\_find for fitit ==1. Otherwise, inserts the mapping with vm\_map\_fixed
+6. Handles the MAP_WIREFUTURE case
+7. Converts mach error codes to Unix codes and returns to vn\_mmap.
+
+**vm\_map\_find**:
+
+**vm\_map\_findspace**:
+
+**vm\_map\_entry\_splay**:
+
+**vm\_map\_insert**:
+
+**vm\_map\_lookup\_entry**:
+
+**vm\_map\_entry\_create**: Zones allocates a map entry, using M_NOWAIT for the system map entries and M_WAITOK for user map entries.
+
+**vm\_map\_entry\_link**:
+
+**vm\_map\_entry\_splay**:
+
+**vm\_map\_entry\_set\_max\_free**:
+
+**vm\_map\_simplify\_entry**:
+
+**vm\_map\_pmap\_enter**:
+
+**vm\_page\_find\_least**:
+
+**pmap\_enter\_object**:
+
+**pmap\_enter\_quick\_locked**:
+
+**pmap\_try\_insert\_pv\_entry**:
+
+**pte\_store**:
+
 
 ### Documented Code
 
