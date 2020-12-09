@@ -76,7 +76,7 @@ File: vm_object.c
 File: vm_map.c
 	vm_map_find					++--
 	vm_map_findspace			++--
-	vm_map_entry_splay			----
+	vm_map_entry_splay			++--
 	vm_map_insert				++--
 	vm_map_lookup_entry			----
 	vm_map_entry_create			++--
