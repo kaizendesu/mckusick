@@ -103,6 +103,11 @@ File: pmap.h
 
 ![](assets/splay_trees.jpeg)
 
+### *vm\_map\_entry\_splay* Visualization
+
+![](assets/splay_algorithm_1.jpg)
+![](assets/splay_algorithm_2.jpg)
+
 ## Code Walkthrough
 
 ### Pseudo Code Overview 
