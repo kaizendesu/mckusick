@@ -88,6 +88,9 @@ File: vm_map.c
 File: vm_page.c
 	vm_page_find_least			----
 
+File: vm_radix.c
+	vm_radix_lookup_ge			----
+
 File: pmap.c
 	pmap_enter_object			----
 	pmap_enter_quick_locked		----
