@@ -37,7 +37,16 @@ sys_mmap
 				vm_map_pmap_enter
 					vm_page_find_least
 					pmap_enter_object
+						pmap_ps_enabled
+						pmap_enter_pde
 						pmap_enter_quick_locked
+							pmap_valid_bit
+							pmap_pde_pindex
+							pmap_pde
+								pmap_pdpe
+									pmap_pm14e
+										pmap_pml4e_index
+									pmap_pdpe_to_pde
 						pmap_try_insert_pv_entry
 						pte_store
 ```
@@ -92,8 +101,17 @@ File: vm_radix.c
 	vm_radix_lookup_ge			----
 
 File: pmap.c
-	pmap_enter_object			----
-	pmap_enter_quick_locked		----
+	pmap_enter_object			++--
+	pmap_ps_enabled				----
+	pmap_enter_pde				----
+	pmap_enter_quick_locked		++--
+	pmap_valid_bit				++--
+	pmap_pde_pindex				++--
+	pmap_pde					++--
+	pmap_pdpe					++--
+	pmap_pml4e					++--
+	pmap_pml4e_index			++--
+	pmap_pdpe_to_pde			++--
 	pmap_try_insert_pv_entry	----
 
 File: pmap.h
@@ -110,6 +128,56 @@ File: pmap.h
 
 ![](assets/splay_algorithm_1.jpg)
 ![](assets/splay_algorithm_2.jpg)
+
+
+### *kva\_md\_info* Structure
+
+```c
+/* From /sys/vm/vm.h */
+
+/*
+ * Information passed from the machine-independant VM initialization code
+ * for use by machine-dependant code (mainly for MMU support)
+ */
+struct kva_md_info {
+	vm_offset_t	buffer_sva;
+	vm_offset_t	buffer_eva;
+	vm_offset_t	clean_sva;
+	vm_offset_t	clean_eva;
+};
+
+extern struct kva_md_info	kmi;
+```
+
+### *pmap* Structure
+
+```c
+/*
+ * The kernel virtual address (KVA) of the level 4 page table page is always
+ * within the direct map (DMAP) region.
+ */
+struct pmap {
+	struct mtx		pm_mtx;
+	pml4_entry_t		*pm_pml4;	/* KVA of level 4 page table */
+	uint64_t		pm_cr3;
+	TAILQ_HEAD(,pv_chunk)	pm_pvchunk;	/* list of mappings in pmap */
+	cpuset_t		pm_active;	/* active on cpus */
+	enum pmap_type		pm_type;	/* regular or nested tables */
+	struct pmap_statistics	pm_stats;	/* pmap statistics */
+	struct vm_radix		pm_root;	/* spare page table pages */
+	long			pm_eptgen;	/* EPT pmap generation id */
+	int			pm_flags;
+	struct pmap_pcids	pm_pcids[MAXCPU];
+};
+```
+
+### 4 KiB Page Mapping in Long Mode
+
+![](assets/4KiB_longmode_paging.png)
+
+### 2 MiB Page Mapping in Long Mode
+
+![](assets/2MiB_longmode_paging.png)
 
 ## Code Walkthrough
 
