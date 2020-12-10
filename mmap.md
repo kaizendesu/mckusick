@@ -46,7 +46,9 @@ sys_mmap
 								pmap_pdpe
 									pmap_pm14e
 										pmap_pml4e_index
+										pmap_pml4e_to_pdpe
 									pmap_pdpe_to_pde
+										pmap_pde_index
 						pmap_try_insert_pv_entry
 						pte_store
 ```
@@ -96,6 +98,7 @@ File: vm_map.c
 
 File: vm_page.c
 	vm_page_find_least			----
+	PHYS_TO_VM_PAGE				----
 
 File: vm_radix.c
 	vm_radix_lookup_ge			----
@@ -111,7 +114,11 @@ File: pmap.c
 	pmap_pdpe					++--
 	pmap_pml4e					++--
 	pmap_pml4e_index			++--
+	pmap_pml4e_to_pdpe			++--
+	pmap_pdpe_index				++--
 	pmap_pdpe_to_pde			++--
+	pmap_pde_index				++--
+	_pmap_allocpte				----
 	pmap_try_insert_pv_entry	----
 
 File: pmap.h
