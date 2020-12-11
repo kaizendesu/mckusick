@@ -49,6 +49,12 @@ sys_mmap
 										pmap_pml4e_to_pdpe
 									pmap_pdpe_to_pde
 										pmap_pde_index
+							_pmap_allocpte
+								pmap_accessed_bit
+								pmap_modified_bit
+								pmap_valid_bit
+								pmap_rw_bit
+								vm_page_alloc
 						pmap_try_insert_pv_entry
 						pte_store
 ```
@@ -99,6 +105,7 @@ File: vm_map.c
 File: vm_page.c
 	vm_page_find_least			----
 	PHYS_TO_VM_PAGE				----
+	vm_page_alloc				----
 
 File: vm_radix.c
 	vm_radix_lookup_ge			----
@@ -118,7 +125,11 @@ File: pmap.c
 	pmap_pdpe_index				++--
 	pmap_pdpe_to_pde			++--
 	pmap_pde_index				++--
-	_pmap_allocpte				----
+	_pmap_allocpte				++--
+	pmap_accessed_bit			++--
+	pmap_modified_bit			++--
+	pmap_valid_bit				++--
+	pmap_rw_bit					++--
 	pmap_try_insert_pv_entry	----
 
 File: pmap.h
