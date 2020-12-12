@@ -55,6 +55,9 @@ sys_mmap
 								pmap_valid_bit
 								pmap_rw_bit
 								vm_page_alloc
+									vm_page_cache_lookup
+									vm_phys_alloc_pages
+										vm_phys_alloc_domain_pages
 								PHYS_TO_VM_PAGE
 						pmap_try_insert_pv_entry
 						pte_store
@@ -106,10 +109,12 @@ File: vm_map.c
 File: vm_page.c
 	vm_page_find_least			----
 	PHYS_TO_VM_PAGE				++--
-	vm_page_alloc				----
+	vm_page_alloc				++--
+	vm_page_cache_lookup		----
 
-File: vm_radix.c
-	vm_radix_lookup_ge			----
+File: vm_phys.c
+	vm_phys_alloc_pages			+---
+	vm_phys_alloc_domain_pages	+---
 
 File: pmap.c
 	pmap_enter_object			++--
@@ -197,6 +202,33 @@ struct pmap {
 ### 2 MiB Page Mapping in Long Mode
 
 ![](assets/2MiB_longmode_paging.png)
+
+### *vm\_domain\_iterator* Structure
+
+```c
+/* From /sys/vm/vm_domain.h */
+
+struct vm_domain_iterator {
+	vm_domain_policy_type_t policy;
+	int domain;
+	int n;
+};
+
+/* From /sys/sys/_vm_domain.h */
+
+struct vm_domain_policy_entry {
+	vm_domain_policy_type_t policy;
+	int domain;
+};
+
+struct vm_domain_policy {
+	seq_t seq;
+	struct vm_domain_policy_entry p;
+};
+
+
+```
+
 
 ## Code Walkthrough
 
