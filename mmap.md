@@ -286,6 +286,28 @@ struct pmap {
 
 **vm\_map\_pmap\_enter**:
 
+**pmap\_enter\_pde**:
+
+**pmap\_enter\_quick\_locked**:
+
+**pmap\_valid\_bit**:
+
+**pmap\_pde\_pindex**:
+
+**pmap\_pde**:
+
+**pmap\_pdpe**:
+
+**pmap\_pm14e**:
+
+**pmap\_pml4e\_index**:
+
+**pmap\_pml4e\_to\_pdpe**:
+
+**pmap\_pdpe\_to\_pde**:
+
+**pmap\_pde\_index**:
+
 **vm\_page\_find\_least**:
 
 **pmap\_enter\_object**:
