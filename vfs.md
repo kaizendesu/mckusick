@@ -18,16 +18,16 @@ The third '+' means that I have added it to this document's code walkthrough.
 
 ```txt
 File: vfs_subr.c
-	vaccess				++-
-	vget				+--
-	_vhold				+--
-	vrele				++-
-	vputx				+--
-	vinactive			+--
-	_vdrop				---
+    vaccess             ++-
+    vget                +--
+    _vhold              +--
+    vrele               ++-
+    vputx               +--
+    vinactive           +--
+    _vdrop              ---
 
 File: ufs_inode.c
-	ufs_inactive		+--
+    ufs_inactive        +--
 ```
 
 ## Important Data Structures

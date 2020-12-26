@@ -16,14 +16,14 @@ that call a function within a return.
 
 ```txt
 namei
-	namei_handle_root
-	lookup
-		vfs_cache_lookup
-			cache_lookup
-			ufs_lookup
-			ufs_lookup_ino
-				ufs_access
-				ufs_accessx
+    namei_handle_root
+    lookup
+        vfs_cache_lookup
+            cache_lookup
+            ufs_lookup
+            ufs_lookup_ino
+                ufs_access
+                ufs_accessx
 ```
 
 ## Reading Checklist
@@ -37,29 +37,29 @@ The third '+' means that I have added it to this document's code walkthrough.
 
 ```txt
 File: vfs_lookup.c
-	namei				+-+	(Go over in detail on second pass)
-	namei_handle_root	++-
-	lookup				+++
+    namei               +-+ (Go over in detail on second pass)
+    namei_handle_root   ++-
+    lookup              +++
 
 File: vfs_cache.c
-	vfs_cache_lookup	++-
+    vfs_cache_lookup    ++-
 
 File: vfs_default.c
-	vop_stdaccess		++-
+    vop_stdaccess       ++-
 
 File: ufs_vnops.c
-	ufs_access			---
-	ufs_accessx			++-
-	ufs_create			+-- (Watched lecture about this functions)
+    ufs_access          ---
+    ufs_accessx         ++-
+    ufs_create          +-- (Watched lecture about this function)
 	
 File: kern_priv.c
-	priv_check_cred		---
+    priv_check_cred     ---
 
 File: ufs_lookup.c
-	ufs_lookup			++-
-	ufs_lookup_ino		+++ (Go over in detail on second pass)
-	ufs_makedirentry	+-- (Watched lecture about this function)
-	ufs_direnter		+-- (Watched lecture about this function)
+    ufs_lookup          ++-
+    ufs_lookup_ino      +++ (Go over in detail on second pass)
+    ufs_makedirentry    +-- (Watched lecture about this function)
+    ufs_direnter        +-- (Watched lecture about this function)
 ```
 
 ## Important Data Structures

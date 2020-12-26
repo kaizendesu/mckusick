@@ -16,37 +16,37 @@ that call a function within a return.
 
 ```txt
 trap
-	trap_pfault
-		vm_fault
-			vm_fault_hold
-				vm_map_lookup
-					vm_map_lock_read
-					vm_map_lookup_entry
-					vm_object_shadow
-				vm_object_reference_locked
-				vm_object_pip_add
-				vm_page_lookup
-				vm_page_lock
-				vm_page_remque
-					vm_page_dequeue
-				vm_page_unlock
-				vm_page_xbusy
-				vm_page_alloc
-					vm_radix_lookup_le
-					vm_page_cache_lookup
-					vm_reserv_alloc_page
-					vm_phys_alloc_pages
-					vm_reserv_reclaim_inactive
+    trap_pfault
+        vm_fault
+            vm_fault_hold
+                vm_map_lookup
+                    vm_map_lock_read
+                    vm_map_lookup_entry
+                    vm_object_shadow
+                vm_object_reference_locked
+                vm_object_pip_add
+                vm_page_lookup
+                vm_page_lock
+                vm_page_remque
+                    vm_page_dequeue
+                vm_page_unlock
+                vm_page_xbusy
+                vm_page_alloc
+                    vm_radix_lookup_le
+                    vm_page_cache_lookup
+                    vm_reserv_alloc_page
+                    vm_phys_alloc_pages
+                    vm_reserv_reclaim_inactive
 
 
 
-					pagedaemon_wakup
-				vm_map_entry_behavior
-				vm_pager_get_pages
-				pmap_zero_page
-					pagezero
-				pmap_enter
-				vm_page_activate
+                    pagedaemon_wakup
+                vm_map_entry_behavior
+                vm_pager_get_pages
+                pmap_zero_page
+                    pagezero
+                pmap_enter
+                vm_page_activate
 ```
 
 ## Reading Checklist
@@ -60,58 +60,58 @@ The third '+' means that I have added it to this document's code walkthrough.
 
 ```txt
 File: trap.c
-	trap							----
-	trap_pfault						----
+    trap                            ----
+    trap_pfault                     ----
 
 File: vm_fault.c
-	vm_fault						----
-	vm_fault_hold					----
+    vm_fault                        ----
+    vm_fault_hold                   ----
 
 File: vm_map.c
-	vm_map_lookup					----
-	vm_map_lock_read				----
-	vm_map_lookup_entry				++--
-	vm_map_entry_behavior			----
+    vm_map_lookup                   ----
+    vm_map_lock_read                ----
+    vm_map_lookup_entry             ++--
+    vm_map_entry_behavior           ----
 
 File: vm_object.c
-	vm_object_shadow				----
-	vm_object_reference_locked		----
-	vm_object_pip_add				----
+    vm_object_shadow                ----
+    vm_object_reference_locked      ----
+    vm_object_pip_add               ----
 
 File: vm_page.c
-	vm_page_lookup					----
-	vm_page_lock					----
-	vm_page_remque					----
-	vm_page_dequeue					----
-	vm_page_unlock					----
-	vm_page_xbusy					----
-	vm_page_alloc					----
-	vm_page_cache_lookup			----
-	vm_page_activate				----
+    vm_page_lookup                  ----
+    vm_page_lock                    ----
+    vm_page_remque                  ----
+    vm_page_dequeue                 ----
+    vm_page_unlock                  ----
+    vm_page_xbusy                   ----
+    vm_page_alloc                   ----
+    vm_page_cache_lookup            ----
+    vm_page_activate                ----
 
 File: vm_radix.c
-	vm_radix_lookup_le				----
+    vm_radix_lookup_le              ----
 
 File: vm_reserv.c
-	vm_reserv_alloc_page			----
-	vm_reserv_reclaim_inactive		----
+    vm_reserv_alloc_page            ----
+    vm_reserv_reclaim_inactive      ----
 
 File: vm_phys.c
-	vm_phys_alloc_pages				----
+    vm_phys_alloc_pages             ----
 
 File: vm_pageout.c
-	pagedaemon_wakeup				----
+    pagedaemon_wakeup               ----
 
 File: vm_pager.c
-	vm_pager_get_pages				----
+    vm_pager_get_pages              ----
 
 File: pmap.c
-	pmap_zero_page					----
-	pmap_copy_page					----
-	pmap_enter						----
+    pmap_zero_page                  ----
+    pmap_copy_page                  ----
+    pmap_enter                      ----
 
 File: support.S
-	pagezero						----
+    pagezero                        ----
 ```
 
 ## Important Data Structures and Algorithms

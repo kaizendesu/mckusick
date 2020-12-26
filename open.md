@@ -17,15 +17,15 @@ that call a function within a return.
 ```txt
 sys_open
 kern_openat	
-	falloc_noinstall
-	vn_open
-	vn_open_cred
-		namei
-		vn_open_vnode
-	finstall
-		fdalloc
-		_finstall
-	fdrop
+    falloc_noinstall
+    vn_open
+    vn_open_cred
+        namei
+        vn_open_vnode
+    finstall
+        fdalloc
+        _finstall
+    fdrop
 ```
 
 ## Reading Checklist
@@ -39,22 +39,22 @@ The third '+' means that I have added it to this document's code walkthrough.
 
 ```txt
 File: vfs_syscall.c
-	sys_open			+++
-	kern_openat			+++
+    sys_open            +++
+    kern_openat         +++
 
 /* Was tired when doing this file, double check everything */
 File: kern_descrip.c
-	falloc_noinstall	++-
-	finstall			++-
-	fdalloc				++-
-	_finstall			++-
-	_fdrop				+--
+    falloc_noinstall    ++-
+    finstall            ++-
+    fdalloc             ++-
+    _finstall           ++-
+    _fdrop              +--
 
 /* vn_open_vnode will require closer look in future */
 File: vfs_vnops.c
-	vn_open				+++ 
-	vn_open_cred		+++
-	vn_open_vnode		+-+
+    vn_open             +++ 
+    vn_open_cred        +++
+    vn_open_vnode       +-+
 ```
 
 ## Important Data Structures

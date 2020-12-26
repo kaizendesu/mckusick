@@ -29,21 +29,21 @@ The third '+' means that I have added it to this document's code walkthrough.
 
 ```txt
 File: exception.S
-	fast_syscall				+++
+    fast_syscall                +++
 
 File: trap.c
-	amd64_syscall				+++
-	cpu_fetch_syscall_args		++-
+    amd64_syscall               +++
+    cpu_fetch_syscall_args      ++-
 
 File: subr_syscall
-	syscallenter				+++
-	syscallret					+-+
+    syscallenter                +++
+    syscallret                  +-+
 
 File: vm_machdep.c
-	cpu_set_syscall_retval		++-
+    cpu_set_syscall_retval      ++-
 
 File: subr_trap.c
-	userret						++-
+    userret                     ++-
 ```
 
 ## Important Data Structures

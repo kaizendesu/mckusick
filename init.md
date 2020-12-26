@@ -14,33 +14,33 @@ The third '+' means that I have added it to this markdown document for reference
 
 ```txt
 File: locore.S
-	hammer_time		---
-	mi_startup		---
+    hammer_time         ---
+    mi_startup          ---
 
 File: machdep.c
-	proc_linkup0		++-
-	init_param1			++-
-	ssdtosd				+--
-	ssdtosyssd			+--
-	wrmsr				++-
-	pcpu_init			++-
-	dpcpu_init			++-
-	mutex_init			---
-	clock_init			---
-	identify_cpu		---
-	initializecpu		---
-	initializecpucache	---
-	getmemsize			---
-	init_param2			+--
-	cninit				---
-	atpic_reset			--- (?)
-	msgbufinit			---
-	fpuinit				---
-	cpu_probe_amdc1e	---
-	x86_init_fdt		--- (?)
+    proc_linkup0        ++-
+    init_param1         ++-
+    ssdtosd             +--
+    ssdtosyssd          +--
+    wrmsr               ++-
+    pcpu_init           ++-
+    dpcpu_init          ++-
+    mutex_init          ---
+    clock_init          ---
+    identify_cpu        ---
+    initializecpu       ---
+    initializecpucache  ---
+    getmemsize          ---
+    init_param2         +--
+    cninit              ---
+    atpic_reset         --- (?)
+    msgbufinit          ---
+    fpuinit             ---
+    cpu_probe_amdc1e    ---
+    x86_init_fdt        --- (?)
 
 File: init_main.c
-	mi_startup			---
+    mi_startup          ---
 ```
 
 ## Important Data Structures

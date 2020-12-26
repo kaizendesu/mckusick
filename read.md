@@ -16,22 +16,22 @@ that call a function within a return.
 
 ```txt
 sys_read
-	kern_readv
-		fget_read
-		_fget
-			fget_unlocked	
-		dofileread
-			vn_io_fault (fo_read)
-				foffset_lock_uio
-				vn_read
-					get_advice
-					vn_lock
-					_vn_lock
-					ffs_read (VOP_READ)
-					vop_stdunlock (VOP_UNLOCK)
-					vop_stdadvise (VOP_ADVISE)
-				foffset_unlock_uio
-		fdrop
+    kern_readv
+        fget_read
+        _fget
+            fget_unlocked	
+        dofileread
+            vn_io_fault (fo_read)
+                foffset_lock_uio
+                vn_read
+                    get_advice
+                    vn_lock
+                    _vn_lock
+                    ffs_read (VOP_READ)
+                    vop_stdunlock (VOP_UNLOCK)
+                    vop_stdadvise (VOP_ADVISE)
+                foffset_unlock_uio
+        fdrop
 ```
 
 ## Reading Checklist
@@ -45,29 +45,29 @@ The third '+' means that I have added it to this document's code walkthrough.
 
 ```txt
 File: sys_generic.c
-	sys_read			----
-	kern_readv			----
-	dofileread			----
+    sys_read            ----
+    kern_readv          ----
+    dofileread          ----
 
 File: kern_descrip.c
-	fget_read			----
-	_fget				----
-	fget_unlocked		----
+    fget_read           ----
+    _fget               ----
+    fget_unlocked       ----
 
 File: vfs_vnops.c
-	vn_io_fault			----
-	foffset_lock_uio	----
-	vn_read				----
-	get_advice			----
-	_vn_lock			----
-	foffset_unlock_uio	----
+    vn_io_fault         ----
+    foffset_lock_uio    ----
+    vn_read             ----
+    get_advice          ----
+    _vn_lock            ----
+    foffset_unlock_uio  ----
 
 File: ffs_vnops.c
-	ffs_read			----
+    ffs_read            ----
 
 File: vfs_default.c
-	vop_stdunlock		----
-	vop_stdavise		----
+    vop_stdunlock       ----
+    vop_stdavise        ----
 ```
 
 ## Important Data Structures

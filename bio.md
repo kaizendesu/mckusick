@@ -16,18 +16,18 @@ that call a function within a return.
 
 ```txt
 breadn_flags
-	getblk
-		gbincore
-		bremfree
-		getnewbuf
-			buf_scan
-				buf_recycle
-		bgetvp	
-	bufstrategy
-		ufs_strategy
-			ffs_geom_strategy
-				g_vfs_strategy
-					g_io_request
+    getblk
+        gbincore
+        bremfree
+        getnewbuf
+            buf_scan
+                buf_recycle
+        bgetvp	
+    bufstrategy
+        ufs_strategy
+            ffs_geom_strategy
+                g_vfs_strategy
+                    g_io_request
 ```
 
 ## Reading Checklist
@@ -41,31 +41,31 @@ The third '+' means that I have added it to this document's code walkthrough.
 
 ```txt
 File: vfs_bio.c
-	breadn_flags			----
-	getblk					----
-	getnewbuf				----
-	buf_scan				----
-	buf_recycle				----
-	allocbuf				----
-	bufstrategy				----
+    breadn_flags            ----
+    getblk                  ----
+    getnewbuf               ----
+    buf_scan                ----
+    buf_recycle             ----
+    allocbuf                ----
+    bufstrategy             ----
 
 File: vfs_subr.c
-	gbincore				----
-	bremfree				----
-	getnewbuf				----
-	bgetvp					----
+    gbincore                ----
+    bremfree                ----
+    getnewbuf               ----
+    bgetvp                  ----
 
 File: ufs_vnops.c
-	ufs_strategy			----
+    ufs_strategy            ----
 
 File: ffs_vfsops.c
-	ffs_geom_strategy		----
+    ffs_geom_strategy       ----
 
 File: geom_vfs.c
-	g_vfs_strategy			----
+    g_vfs_strategy          ----
 
 File: geom_io.c
-	g_io_request			----
+    g_io_request            ----
 ```
 
 ## Important Data Structures

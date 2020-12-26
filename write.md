@@ -16,29 +16,29 @@ that call a function within a return.
 
 ```txt
 sys_write
-	kern_writev
-		fget_write
-		_fget
-			fget_unlocked
-		dofilewrite
-			vn_io_fault (fo_write)
-				foffset_lock_uio
-				vn_write
-					get_advice
-					vn_lock
-					_vn_lock
-					ffs_write (VOP_WRITE)
-						ffs_balloc_ufs2 (UFS_BALLOC)
-							ufs_getlbns
-						ffs_alloc
-							ffs_hashalloc
-								ffs_alloccg
-									ffs_alloccgblk
-									ffs_mapsearch
-					vop_stdunlock (VOP_UNLOCK)
-					vop_stdadvise (VOP_ADVISE)
-				foffset_unlock_uio
-		fdrop
+    kern_writev
+        fget_write
+        _fget
+            fget_unlocked
+        dofilewrite
+            vn_io_fault (fo_write)
+                foffset_lock_uio
+                vn_write
+                    get_advice
+                    vn_lock
+                    _vn_lock
+                    ffs_write (VOP_WRITE)
+                        ffs_balloc_ufs2 (UFS_BALLOC)
+                            ufs_getlbns
+                        ffs_alloc
+                            ffs_hashalloc
+                                ffs_alloccg
+                                    ffs_alloccgblk
+                                    ffs_mapsearch
+                    vop_stdunlock (VOP_UNLOCK)
+                    vop_stdadvise (VOP_ADVISE)
+                foffset_unlock_uio
+        fdrop
 ```
 
 ## Reading Checklist
@@ -52,49 +52,49 @@ The third '+' means that I have added it to this document's code walkthrough.
 
 ```txt
 File: sys_generic.c
-	sys_write			++--
-	kern_writev			++--
-	dofilewrite			++--
+    sys_write           ++--
+    kern_writev         ++--
+    dofilewrite         ++--
 
 File: kern_descrip.c
-	fget_write			++--
-	_fget				++--
-	fget_unlocked		++--
+    fget_write          ++--
+    _fget               ++--
+    fget_unlocked       ++--
 
 File: vfs_vnops.c 
-	vn_io_fault			+---
-	foffset_lock_uio	++--
-	do_vn_io_fault		++--
-	vn_write			++--
-	vn_start_write		+---
-	get_advice			++--
-	_vn_lock			++--
-	vn_io_fault_uiomove	----
-	vn_io_fault_pgmove	----
-	foffset_unlock_uio	++--
+    vn_io_fault         +---
+    foffset_lock_uio    ++--
+    do_vn_io_fault      ++--
+    vn_write            ++--
+    vn_start_write      +---
+    get_advice          ++--
+    _vn_lock            ++--
+    vn_io_fault_uiomove ----
+    vn_io_fault_pgmove  ----
+   foffset_unlock_uio   ++--
 	
 File: ffs_vnops.c
-	ffs_write			++--
+    ffs_write           ++--
 
 File: ffs_balloc.c
-	ffs_balloc_ufs2		----
+    ffs_balloc_ufs2     ----
 
 File: ufs_bmap.c
-	ufs_getlbns			----
+    ufs_getlbns         ----
 
 File: ffs_alloc.c
-	ffs_alloc			----
-	ffs_hashalloc		----
-	ffs_alloccg			----
-	ffs_alloccgblk		----
-	ffs_mapsearch		----
+    ffs_alloc           ----
+    ffs_hashalloc       ----
+    ffs_alloccg         ----
+    ffs_alloccgblk      ----
+    ffs_mapsearch       ----
 
 File: ffs_inode.c
-	ffs_update			----
+    ffs_update          ----
 
 File: vfs_default.c
-	vop_stdunlock		----
-	vop_stdadvise		----
+    vop_stdunlock       ----
+    vop_stdadvise       ----
 ```
 
 ## Important Data Structures
