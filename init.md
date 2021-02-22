@@ -3,10 +3,42 @@
 ## Contents
 
 1. Code Flow
-2. Important Data Structures
-3. General Overview (Code)
+2. Reading Checklist
+3. Important Data Structures
+4. General Overview (Code)
 
 ## Code Flow
+
+```txt
+btext
+    hammer_time 
+        proc_linkup0
+        init_param1
+        ssdtosd
+        ssdtosyssd
+        pcpu_init
+        dcpu_init
+        mutex_init
+            init_turnstiles
+            mtx_init
+                _mtx_init
+                    lock_init
+        clock_init
+            i8254_init
+        identify_cpu
+        initializecpu
+        initializecpucache
+        getmemsize
+        init_param2
+        cninit
+        kdb_init
+        msgbufinit
+        fpuinit
+        cpu_probe_amdc1e
+    mi_startup
+```
+
+## Reading Checklist
 
 The first '+' means that I have read the code or I have a general idea of what it does.
 The second '+' means that I have read the code closely and documented it as it relates to bootup.
@@ -25,9 +57,9 @@ File: machdep.c
     wrmsr               ++-
     pcpu_init           ++-
     dpcpu_init          ++-
-    mutex_init          ---
-    clock_init          ---
-    identify_cpu        ---
+    mutex_init          ++-
+    clock_init          ++-
+    identify_cpu        ++- uses CPUID api to obtain CPU information
     initializecpu       ---
     initializecpucache  ---
     getmemsize          ---
@@ -38,6 +70,18 @@ File: machdep.c
     fpuinit             ---
     cpu_probe_amdc1e    ---
     x86_init_fdt        --- (?)
+
+File: kern_mutex.c
+    init_turnstiles     ++-	initializes 128 turnstile lists and mutexes
+    _mtx_init           ++- sets mutex flags and initializes its lock
+
+File: subr_lock.c
+    lock_init           ++- sets name and flags, initializes the witness
+
+File: clock.c
+    i8254_init          +-- Calls set_i8254_freq for all PCs except PC98
+    set_i8254_freq      ++- Sets new_count to 0x10000, maxcount = 0xffff,
+                            and clock mode to MODE_PERIODIC (16 bit counter).
 
 File: init_main.c
     mi_startup          ---
@@ -329,6 +373,9 @@ hammer_time(u_int64_t modulep, u_int64_t physfree)
 	 * 	     section, to set pcpu->ipending (etc...) properly, we
 	 *	     must be able to get the icu lock, so it can't be
 	 *	     under witness.
+	 * 
+	 * Initializes turnstiles and major mutexes in the system and
+	 * proc0.
 	 */
 	mutex_init();
 	mtx_init(&icu_lock, "icu", NULL, MTX_SPIN | MTX_NOWITNESS);
@@ -370,6 +417,8 @@ hammer_time(u_int64_t modulep, u_int64_t physfree)
 	/*
 	 * Initialize the clock before the console so that console
 	 * initialization can use DELAY().
+	 *
+	 * Initializes the clock's mutex and calls i8254_init.
 	 */
 	clock_init();
 
