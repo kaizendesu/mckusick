@@ -60,10 +60,10 @@ File: machdep.c
     mutex_init          ++-
     clock_init          ++-
     identify_cpu        ++- uses CPUID api to obtain CPU information
-    initializecpu       ---
-    initializecpucache  ---
-    getmemsize          ---
-    init_param2         +--
+    initializecpu       ++- initializes cr4 register used CPUID info 
+    initializecpucache  ++- sets the CPU cache line size
+    getmemsize          ++-
+    init_param2         ++-
     cninit              ---
     atpic_reset         --- (?)
     msgbufinit          ---
