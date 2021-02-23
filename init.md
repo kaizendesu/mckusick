@@ -29,12 +29,11 @@ btext
         initializecpu
         initializecpucache
         getmemsize
+            native_parse_memmap
+            pmap_bootstrap
         init_param2
         cninit
-        kdb_init
         msgbufinit
-        fpuinit
-        cpu_probe_amdc1e
     mi_startup
 ```
 
@@ -46,7 +45,7 @@ The third '+' means that I have added it to this markdown document for reference
 
 ```txt
 File: locore.S
-    hammer_time         ---
+    hammer_time         ++-
     mi_startup          ---
 
 File: machdep.c
@@ -62,14 +61,12 @@ File: machdep.c
     identify_cpu        ++- uses CPUID api to obtain CPU information
     initializecpu       ++- initializes cr4 register used CPUID info 
     initializecpucache  ++- sets the CPU cache line size
-    getmemsize          ++-
+    getmemsize          ++- links up pmap module, fills phys_avail array
+    native_parse_memmap ++- uses e820 BIOS call to obtain memory map
     init_param2         ++-
-    cninit              ---
-    atpic_reset         --- (?)
+    cninit              ++- probes consoles to find the first with highest priority
     msgbufinit          ---
-    fpuinit             ---
-    cpu_probe_amdc1e    ---
-    x86_init_fdt        --- (?)
+    x86_init_fdt        --- flattened device tree code. skipping.
 
 File: kern_mutex.c
     init_turnstiles     ++-	initializes 128 turnstile lists and mutexes
@@ -82,6 +79,9 @@ File: clock.c
     i8254_init          +-- Calls set_i8254_freq for all PCs except PC98
     set_i8254_freq      ++- Sets new_count to 0x10000, maxcount = 0xffff,
                             and clock mode to MODE_PERIODIC (16 bit counter).
+
+File: pmap.c
+    pmap_bootstrap      +-- Read this version of pmap_bootstrap later
 
 File: init_main.c
     mi_startup          ---
