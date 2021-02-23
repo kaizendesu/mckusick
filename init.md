@@ -34,6 +34,8 @@ btext
         init_param2
         cninit
         msgbufinit
+            msgbuf_reinit
+                msgbuf_init
     mi_startup
 ```
 
@@ -82,6 +84,11 @@ File: clock.c
 
 File: pmap.c
     pmap_bootstrap      +-- Read this version of pmap_bootstrap later
+
+File: kern_msgbuf.c
+    msgbuf_reinit       ++- Recovers old msgbuf content if possible
+    msgbuf_init         ++- Initializes and bzeros msgbuf if old contents
+                            could not be recovered
 
 File: init_main.c
     mi_startup          ---
