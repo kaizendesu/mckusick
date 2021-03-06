@@ -1,0 +1,10 @@
+1. Finish the rest of mmap.md 
+2. Read and take notes on getmemsize, pmap_bootstrap, and create_pagetables
+3. Start pg.md
+
+-----------------------
+Complete after finishing lecture 12 and 13
+
+1. Complete write.md and then read.md
+2. Combine open.md with lookup.md
+3. Complete vfs.md and bio.md

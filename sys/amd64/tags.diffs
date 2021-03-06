@@ -1,0 +1,99 @@
+*** tags.orig	2016-02-18 13:26:11.410919000 -0800
+--- tags	2016-02-18 13:28:14.585961000 -0800
+***************
+*** 2895,2900 ****
+--- 2895,2901 ----
+  C2T	/tmp/sys/kern/subr_mbpool.c	/^#define	C2T(P, C)	((struct mbtrail *)((char *)(C) /
+  CACHE_LINE_SHIFT	/tmp/sys/amd64/include/param.h	/^#define	CACHE_LINE_SHIFT	7$/
+  CACHE_LINE_SIZE	/tmp/sys/amd64/include/param.h	/^#define	CACHE_LINE_SIZE		(1 << CACHE_LINE_SHIFT)$/
++ CACHE_UPGRADE_LOCK	/tmp/sys/kern/vfs_cache.c	/^#define	CACHE_UPGRADE_LOCK/
+  CALC_BITS	/tmp/sys/kern/kern_acct.c	/^#define CALC_BITS 28$/
+  CALIB_DOSCALE	/tmp/sys/kern/subr_prof.c	/^#define CALIB_DOSCALE(count)	(((count) + CALIB_SCA/
+  CALIB_SCALE	/tmp/sys/sys/gmon.h	/^#define	CALIB_SCALE	1000$/
+***************
+*** 39289,39294 ****
+--- 39290,39296 ----
+  default_recover	/tmp/sys/amd64/compile/GENERIC/g_part_if.c	/^default_recover(struct g_part_table *t __unused)$/
+  default_resize	/tmp/sys/amd64/compile/GENERIC/g_part_if.c	/^default_resize(struct g_part_table *t __unused,$/
+  default_sysdev	/tmp/sys/amd64/compile/GENERIC/serdev_if.c	/^default_sysdev(device_t dev)$/
++ default_vnodeops	/tmp/sys/kern/vfs_default.c	/default_vnodeops/
+  defid	/tmp/sys/fs/msdosfs/denode.h	/^struct defid {$/
+  deflate	/tmp/sys/sys/zlib.h	/^#  define deflate	z_deflate$/
+  deflateCopy	/tmp/sys/sys/zlib.h	/^#  define deflateCopy	z_deflateCopy$/
+***************
+*** 39350,39355 ****
+--- 39352,39358 ----
+  dev_dependsl	/tmp/sys/kern/kern_conf.c	/^dev_dependsl(struct cdev *pdev, struct cdev *cdev)/
+  dev_event_info	/tmp/sys/kern/subr_bus.c	/^struct dev_event_info$/
+  dev_free_devlocked	/tmp/sys/kern/kern_conf.c	/^dev_free_devlocked(struct cdev *cdev)$/
++ dev_lock	/tmp/sys/kern/kern_conf.c	/^dev_lock(void)$/
+  dev_pager_alloc	/tmp/sys/vm/device_pager.c	/^dev_pager_alloc(void *handle, vm_ooffset_t size, v/
+  dev_pager_dealloc	/tmp/sys/vm/device_pager.c	/^dev_pager_dealloc(vm_object_t object)$/
+  dev_pager_free_page	/tmp/sys/vm/device_pager.c	/^dev_pager_free_page(vm_object_t object, vm_page_t /
+***************
+*** 39728,39733 ****
+--- 39731,39737 ----
+  domaininit	/tmp/sys/kern/uipc_domain.c	/^domaininit(void *dummy)$/
+  done_status_t	/tmp/sys/dev/advansys/adwlib.h	/^} done_status_t;$/
+  donice	/tmp/sys/kern/kern_resource.c	/^donice(struct thread *td, struct proc *p, int n)$/
++ doreti	/tmp/sys/amd64/amd64/exception.S	/^doreti:$/
+  doreti_iret	/tmp/sys/amd64/include/md_var.h	/^void	doreti_iret(void) __asm(__STRING(doreti_iret)/
+  dos2unixchr	/tmp/sys/fs/msdosfs/msdosfs_conv.c	/^dos2unixchr(u_char *outbuf, const u_char **instr, /
+  dos2unixfn	/tmp/sys/fs/msdosfs/msdosfs_conv.c	/^dos2unixfn(u_char dn[11], u_char *un, int lower, s/
+***************
+*** 40501,40506 ****
+--- 40505,40511 ----
+  falloc_caps	/tmp/sys/kern/kern_descrip.c	/^falloc_caps(struct thread *td, struct file **resul/
+  falloc_noinstall	/tmp/sys/kern/kern_descrip.c	/^falloc_noinstall(struct thread *td, struct file **/
+  false	/tmp/sys/sys/types.h	/^#define	false	0$/
++ fast_syscall	/tmp/sys/amd64/amd64/exception.S	/^IDTVEC(fast_syscall)$/
+  fatblock	/tmp/sys/fs/msdosfs/msdosfs_fat.c	/^fatblock(struct msdosfsmount *pmp, u_long ofs, u_l/
+  fatcache	/tmp/sys/fs/msdosfs/denode.h	/^struct fatcache {$/
+  fatchain	/tmp/sys/fs/msdosfs/msdosfs_fat.c	/^fatchain(struct msdosfsmount *pmp, u_long start, u/
+***************
+*** 40812,40817 ****
+--- 40817,40823 ----
+  ffs_vfree	/tmp/sys/ufs/ffs/ffs_alloc.c	/^ffs_vfree(pvp, ino, mode)$/
+  ffs_vget	/tmp/sys/ufs/ffs/ffs_vfsops.c	/^ffs_vget(mp, ino, flags, vpp)$/
+  ffs_vgetf	/tmp/sys/ufs/ffs/ffs_vfsops.c	/^ffs_vgetf(mp, ino, flags, vpp, ffs_flags)$/
++ ffs_vnodeops2	/tmp/sys/ufs/ffs/ffs_vnops.c	/ffs_vnodeops2/
+  ffs_vptofh	/tmp/sys/ufs/ffs/ffs_vnops.c	/^ffs_vptofh(struct vop_vptofh_args *ap)$/
+  ffs_write	/tmp/sys/ufs/ffs/ffs_vnops.c	/^ffs_write(ap)$/
+  ffsext_strategy	/tmp/sys/ufs/ffs/ffs_vnops.c	/^ffsext_strategy(struct vop_strategy_args *ap)$/
+***************
+*** 46056,46062 ****
+  loioctl	/tmp/sys/net/if_loop.c	/^loioctl(struct ifnet *ifp, u_long cmd, caddr_t dat/
+  long_ad	/tmp/sys/fs/udf/ecma167-udf.h	/^struct long_ad {$/
+  longjmp /tmp/sys/amd64/amd64/support.S /^ENTRY(longjmp)$/
+! lookup	/tmp/sys/kern/subr_firmware.c	/^lookup(const char *name, struct priv_fw **empty_sl/
+  lookup_addrsel_policy	/tmp/sys/netinet6/in6_src.c	/^lookup_addrsel_policy(struct sockaddr_in6 *key)$/
+  loop_modevent	/tmp/sys/net/if_loop.c	/^loop_modevent(module_t mod, int type, void *data)$/
+  looutput	/tmp/sys/net/if_loop.c	/^looutput(struct ifnet *ifp, struct mbuf *m, const /
+--- 46062,46068 ----
+  loioctl	/tmp/sys/net/if_loop.c	/^loioctl(struct ifnet *ifp, u_long cmd, caddr_t dat/
+  long_ad	/tmp/sys/fs/udf/ecma167-udf.h	/^struct long_ad {$/
+  longjmp /tmp/sys/amd64/amd64/support.S /^ENTRY(longjmp)$/
+! lookup	/tmp/sys/kern/vfs_lookup.c	/^lookup(struct nameidata *ndp)$/
+  lookup_addrsel_policy	/tmp/sys/netinet6/in6_src.c	/^lookup_addrsel_policy(struct sockaddr_in6 *key)$/
+  loop_modevent	/tmp/sys/net/if_loop.c	/^loop_modevent(module_t mod, int type, void *data)$/
+  looutput	/tmp/sys/net/if_loop.c	/^looutput(struct ifnet *ifp, struct mbuf *m, const /
+***************
+*** 54848,54853 ****
+--- 54854,54860 ----
+  ufs_uninit	/tmp/sys/ufs/ufs/ufs_vfsops.c	/^ufs_uninit(vfsp)$/
+  ufs_update_nfs4_acl_after_mode_change	/tmp/sys/ufs/ufs/ufs_vnops.c	/^ufs_update_nfs4_acl_after_mode_change(struct vnode/
+  ufs_vinit	/tmp/sys/ufs/ufs/ufs_vnops.c	/^ufs_vinit(mntp, fifoops, vpp)$/
++ ufs_vnodeops	/tmp/sys/ufs/ufs/ufs_vnops.c	/ufs_vnodeops/
+  ufs_whiteout	/tmp/sys/ufs/ufs/ufs_vnops.c	/^ufs_whiteout(ap)$/
+  ufsdirhash_acquire	/tmp/sys/ufs/ufs/ufs_dirhash.c	/^ufsdirhash_acquire(struct inode *ip)$/
+  ufsdirhash_add	/tmp/sys/ufs/ufs/ufs_dirhash.c	/^ufsdirhash_add(struct inode *ip, struct direct *di/
+***************
+*** 56236,56241 ****
+--- 56243,56249 ----
+  vn_ioctl	/tmp/sys/kern/vfs_vnops.c	/^vn_ioctl(fp, com, data, active_cred, td)$/
+  vn_isdisk	/tmp/sys/kern/vfs_subr.c	/^vn_isdisk(struct vnode *vp, int *errp)$/
+  vn_kqfilter	/tmp/sys/kern/vfs_vnops.c	/^vn_kqfilter(struct file *fp, struct knote *kn)$/
++ vn_lock	/tmp/sys/sys/vnode.h	/vn_lock(vp, flags)/
+  vn_mmap	/tmp/sys/kern/vfs_vnops.c	/^vn_mmap(struct file *fp, vm_map_t map, vm_offset_t/
+  vn_open	/tmp/sys/kern/vfs_vnops.c	/^vn_open(ndp, flagp, cmode, fp)$/
+  vn_open_cred	/tmp/sys/kern/vfs_vnops.c	/^vn_open_cred(struct nameidata *ndp, int *flagp, in/
